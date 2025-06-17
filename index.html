@@ -46,19 +46,9 @@
       <h3>Nissan Magnite 2021 (CVT Turbo)</h3>
       <p>Fuel: Petrol | Transmission: Automatic | AC: Yes</p>
       <p>₹2,200/day or ₹300/hour</p>
-      <p><strong>Available</strong></p>
-
-      <h4>Availability - June 2025</h4>
-      <div class="calendar">
-        <div class="day">Sun</div><div class="day">Mon</div><div class="day">Tue</div><div class="day">Wed</div><div class="day">Thu</div><div class="day">Fri</div><div class="day">Sat</div>
-        <div class="day"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day"></div><div class="day available">1</div><div class="day available">2</div>
-        <div class="day available">3</div><div class="day available">4</div><div class="day available">5</div><div class="day available">6</div><div class="day available">7</div><div class="day available">8</div><div class="day available">9</div>
-        <div class="day available">10</div><div class="day available">11</div><div class="day available">12</div><div class="day available">13</div><div class="day available">14</div><div class="day available">15</div><div class="day available">16</div>
-        <div class="day available">17</div><div class="day available">18</div><div class="day available">19</div><div class="day available">20</div><div class="day unavailable">21</div><div class="day unavailable">22</div><div class="day unavailable">23</div>
-        <div class="day available">24</div><div class="day available">25</div><div class="day available">26</div><div class="day available">27</div><div class="day available">28</div><div class="day available">29</div><div class="day available">30</div>
-      </div>
+      <p><strong>Availability - June 2025</strong></p>
+      <div id="calendar" class="calendar"></div>
     </div>
-
   </section>
 
   <section id="booking" class="booking-form">
@@ -94,5 +84,61 @@
   <footer>
     <p>&copy; 2025 Tripz Self Drive Car Rentals. All rights reserved.</p>
   </footer>
+
+  <script>
+    const calendarElement = document.getElementById("calendar");
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqsDIgnx2gUXhwdmutkPXl0c7NFk_wbe2PPC_aFfTqYO3TmxQbFpdPMZnKU_zRfL3WbwfikE0F7P_i/pub?output=csv";
+
+    function getDateArray(start, end) {
+      const arr = [];
+      let dt = new Date(start);
+      while (dt <= end) {
+        arr.push(new Date(dt));
+        dt.setDate(dt.getDate() + 1);
+      }
+      return arr;
+    }
+
+    fetch(csvUrl)
+      .then(res => res.text())
+      .then(data => {
+        const rows = data.split("\n").slice(1);
+        const bookedDates = new Set();
+
+        rows.forEach(row => {
+          const cells = row.split(",");
+          const pickup = new Date(cells[3]);
+          const dropoff = new Date(cells[4]);
+          getDateArray(pickup, dropoff).forEach(d => bookedDates.add(d.toISOString().split('T')[0]));
+        });
+
+        const daysInMonth = 30;
+        const year = 2025;
+        const month = 5; // June (0-indexed)
+        const firstDay = new Date(year, month, 1).getDay();
+
+        const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        weekDays.forEach(d => {
+          const div = document.createElement("div");
+          div.textContent = d;
+          div.className = "day";
+          calendarElement.appendChild(div);
+        });
+
+        for (let i = 0; i < firstDay; i++) {
+          const empty = document.createElement("div");
+          calendarElement.appendChild(empty);
+        }
+
+        for (let date = 1; date <= daysInMonth; date++) {
+          const d = new Date(year, month, date);
+          const iso = d.toISOString().split('T')[0];
+          const cell = document.createElement("div");
+          cell.textContent = date;
+          cell.className = `day ${bookedDates.has(iso) ? 'unavailable' : 'available'}`;
+          calendarElement.appendChild(cell);
+        }
+      });
+  </script>
 </body>
 </html>
