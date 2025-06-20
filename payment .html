@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tripz Payment</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
+    header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
+    .container { padding: 20px; max-width: 600px; margin: auto; background: white; border-radius: 8px; margin-top: 30px; }
+    h2 { color: #2c3e50; }
+    .info-box { background: #eaf7ea; border: 1px solid #b6e0b7; padding: 15px; margin-top: 10px; }
+    .bold { font-weight: bold; }
+    .highlight { color: #d35400; font-weight: bold; }
+    .copy { background: #ecf0f1; padding: 10px; font-weight: bold; margin-top: 10px; border-radius: 5px; }
+    button { margin-top: 20px; padding: 10px 20px; font-weight: bold; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    footer { text-align: center; padding: 20px; font-size: 14px; color: gray; }
+    img.qr { display: block; margin: 10px auto; border: 1px solid #ccc; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Secure Payment - Tripz Rentals</h1>
+  </header>
+
+  <div class="container">
+    <h2>Complete Your Booking</h2>
+    <p>Your Booking ID: <span class="highlight" id="bookingId"></span></p>
+
+    <div class="info-box">
+      <p>Scan the QR code or use either UPI ID below to pay the booking amount (includes refundable deposit).</p>
+      <p class="bold">UPI IDs:</p>
+      <ul>
+        <li><span class="highlight">pullurharish2@ibl</span></li>
+        <li><span class="highlight">pullurharish2@axl</span></li>
+      </ul>
+      <p class="bold">Booking Note: Must include Booking ID</p>
+      <img class="qr" src="tripz_qr.jpg" alt="UPI QR Code" width="200" />
+      <div class="copy">Use either UPI ID above. Mention Booking ID in payment note.</div>
+      <button onclick="redirectToUpload()">I Have Paid - Upload Screenshot</button>
+    </div>
+
+    <p><strong>Note:</strong> Your booking will only be confirmed after payment is verified.</p>
+  </div>
+
+  <footer>
+    &copy; 2025 Tripz Self Drive Rentals
+  </footer>
+
+  <script>
+    function generateBookingID() {
+      const id = 'TRIPZ' + Math.floor(Math.random() * 100000);
+      localStorage.setItem("booking_id", id);
+      document.getElementById("bookingId").textContent = id;
+    }
+
+    function redirectToUpload() {
+      window.location.href = "upload-screenshot.html";
+    }
+
+    generateBookingID();
+  </script>
+</body>
+</html>
