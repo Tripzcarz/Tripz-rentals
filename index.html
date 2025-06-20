@@ -194,29 +194,34 @@
     }
 
     function confirmBooking() {
-      fetch("https://script.google.com/macros/s/AKfycbyGTgEJ4_uGWV5iVnhsL7W7wjhjVKcEhN6RJ8NKn7rutQKHbBoiwjD2V2yH5NPhblLSyA/exec", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookingId,
-          name: formCache.name,
-          phone: formCache.phone,
-          pickup: formCache.pickup,
-          dropoff: formCache.dropoff,
-          location: formCache.location,
-          timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-        })
-      }).then(res => res.json())
-        .then(() => {
-          document.getElementById("summaryModal").style.display = "none";
-          alert("Booking Confirmed! ID: " + bookingId);
-          window.location.href = `payment .html?bookingId=${bookingId}`;
-        });
-    }
+  document.getElementById("summaryModal").style.display = "none";
+  alert("Processing your booking...");
 
-    bookedDates.add("2025-06-22");
-    bookedDates.add("2025-06-23");
-    updateCalendar();
-  </script>
-</body>
-</html>
+  fetch("https://script.google.com/macros/s/AKfycbyGTgEJ4_uGWV5iVnhsL7W7wjhjVKcEhN6RJ8NKn7rutQKHbBoiwjD2V2yH5NPhblLSyA/exec", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      bookingId,
+      name: formCache.name,
+      phone: formCache.phone,
+      pickup: formCache.pickup,
+      dropoff: formCache.dropoff,
+      location: formCache.location,
+      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "success") {
+      alert("Booking Confirmed! ID: " + bookingId);
+      window.location.href = `payment.html?bookingId=${bookingId}`;
+    } else {
+      alert("Failed to confirm booking. Please try again.");
+    }
+  })
+  .catch(err => {
+    console.error("Error:", err);
+    alert("Network error! Redirecting anyway...");
+    window.location.href = `payment.html?bookingId=${bookingId}`;
+  });
+}
