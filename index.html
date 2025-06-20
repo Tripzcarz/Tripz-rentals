@@ -19,6 +19,8 @@
     .available { background-color: #d4edda; }
     .unavailable { background-color: #f8d7da; cursor: not-allowed; }
     .past-date { background-color: #eeeeee; color: #aaa; pointer-events: none; }
+    .selected { background-color: #007bff; color: white; }
+    .range { background-color: #90caf9; }
     footer { background: #2c3e50; color: white; text-align: center; padding: 15px; margin-top: 40px; }
     #priceDisplay { font-size: 18px; font-weight: bold; margin-top: 15px; color: #2c3e50; }
     .calendar-nav { margin-top: 10px; text-align: center; }
@@ -61,236 +63,63 @@
     </div>
   </section>
 
-  <section id="booking" class="booking-form">
-    <h2>Book Your Ride</h2>
-    <form id="bookingForm" action="https://script.google.com/macros/s/AKfycbwJQrz3KyTcKW6AUBdprXyN6SagdP8TCnJhY5twn6SW7F0FpN3HaHyjIzA6W7GATvuM/exec" method="POST" onsubmit="handleFormSubmit(event)">
-      <label>Name:</label><br />
-      <input type="text" name="name" required /><br /><br />
-
-      <label>Phone Number:</label><br />
-      <input type="tel" name="phone" required /><br /><br />
-
-      <label>Pickup Date & Time:</label><br />
-      <input id="pickupInput" type="datetime-local" name="pickup" required onchange="calculatePrice()" /><br /><br />
-
-      <label>Drop-off Date & Time:</label><br />
-      <input id="dropoffInput" type="datetime-local" name="dropoff" required onchange="calculatePrice()" /><br /><br />
-
-      <label>Pickup/Drop Location:</label><br />
-      <input type="text" name="location" /><br /><br />
-
-      <div id="priceDisplay">Estimated Total: ₹0</div>
-
-      <input type="submit" value="Submit" />
-    </form>
-  </section>
-
-  <section id="contact" class="contact">
-    <h2>Contact Us</h2>
-    <p>📞 +91 81429 45805</p>
-    <p>📧 tripzcarz@gmail.com</p>
-    <p>📍 Tirupati, Andhra Pradesh</p>
-    <p><a href="https://wa.me/918142945805">Message on WhatsApp</a></p>
-  </section>
-
-  <div class="modal" id="summaryModal">
-    <div class="modal-content">
-      <h3>Confirm Your Booking</h3>
-      <p id="summaryDetails"></p>
-      <button onclick="confirmBooking()">Confirm</button>
-      <button onclick="closeModal()">Cancel</button>
-    </div>
-  </div>
-
-  <footer>
-    <p>&copy; 2025 Tripz Self Drive Car Rentals. All rights reserved.</p>
-  </footer>
-
   <script>
-    function handleFormSubmit(e) {
-      e.preventDefault();
-      const form = e.target;
-      const name = form.name.value;
-      const phone = form.phone.value;
-      const pickup = form.pickup.value;
-      const dropoff = form.dropoff.value;
-      const location = form.location.value;
-      const estimate = document.getElementById("priceDisplay").textContent;
+    let selectedStart = null;
+    let selectedEnd = null;
+    let dayElements = [];
 
-      document.getElementById("summaryDetails").innerHTML = `
-        <strong>Name:</strong> ${name}<br>
-        <strong>Phone:</strong> ${phone}<br>
-        <strong>Pickup:</strong> ${pickup}<br>
-        <strong>Drop-off:</strong> ${dropoff}<br>
-        <strong>Location:</strong> ${location}<br>
-        <strong>${estimate}</strong><br>
-      `;
-      document.getElementById("summaryModal").style.display = "flex";
+    function clearCalendarSelections() {
+      dayElements.forEach(day => day.classList.remove("selected", "range"));
     }
 
-    function closeModal() {
-      document.getElementById("summaryModal").style.display = "none";
-    }
-
-    function confirmBooking() {
-      closeModal();
-      const form = document.getElementById("bookingForm");
-      const formData = new FormData(form);
-
-      fetch(form.action, {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success') {
-          alert("Booking submitted successfully!");
-          window.location.href = "adhar-upload.html";
-        } else {
-          alert("Submission failed. Try again.");
-        }
-      })
-      .catch(err => alert("Error: " + err.message));
-    }
-
-    function calculatePrice() {
-      const pickup = document.querySelector('input[name="pickup"]').value;
-      const dropoff = document.querySelector('input[name="dropoff"]').value;
-      if (!pickup || !dropoff) return;
-
-      const start = new Date(pickup);
-      const end = new Date(dropoff);
-      if (start >= end) {
-        document.getElementById("priceDisplay").textContent = "Invalid time selection";
-        return;
+    function updateSelectionRange(start, end) {
+      const rangeStart = new Date(start);
+      const rangeEnd = new Date(end);
+      while (rangeStart <= rangeEnd) {
+        const iso = rangeStart.toISOString().split("T")[0];
+        const cell = document.querySelector(`[data-date='${iso}']`);
+        if (cell) cell.classList.add("range");
+        rangeStart.setDate(rangeStart.getDate() + 1);
       }
+    }
 
-      const hourlyRate = 300;
-      const dailyRate = 2700;
-      const thresholdHours = 6;
-      const diffMs = end - start;
-      const diffHours = diffMs / (1000 * 60 * 60);
-      const fullDays = Math.floor(diffHours / 24);
-      const remainingHours = diffHours % 24;
-
-      let total = fullDays * dailyRate;
-      if (remainingHours > thresholdHours) {
-        total += dailyRate;
+    function handleDateClick(dateStr, el) {
+      if (!selectedStart || (selectedStart && selectedEnd)) {
+        selectedStart = new Date(dateStr);
+        selectedEnd = null;
+        clearCalendarSelections();
+        el.classList.add("selected");
       } else {
-        total += Math.ceil(remainingHours) * hourlyRate;
+        selectedEnd = new Date(dateStr);
+        if (selectedEnd < selectedStart) [selectedStart, selectedEnd] = [selectedEnd, selectedStart];
+        clearCalendarSelections();
+        updateSelectionRange(selectedStart, selectedEnd);
+        document.getElementById("pickupInput").value = `${selectedStart.toISOString().split("T")[0]}T00:00`;
+        document.getElementById("dropoffInput").value = `${selectedEnd.toISOString().split("T")[0]}T00:00`;
+        document.getElementById("booking").scrollIntoView({ behavior: "smooth" });
       }
-
-      document.getElementById("priceDisplay").textContent = `Estimated Total: ₹${total}`;
     }
 
-    let calendarElement = document.getElementById("calendar");
-    let monthLabel = document.getElementById("monthLabel");
-    let today = new Date();
-    let currentMonth = today.getMonth();
-    let currentYear = today.getFullYear();
-    const maxMonth = new Date(today.getFullYear(), today.getMonth() + 3);
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqsDIgnx2gUXhwdmutkPXl0c7NFk_wbe2PPC_aFfTqYO3TmxQbFpdPMZnKU_zRfL3WbwfikE0F7P_i/pub?output=csv";
+    function createDayElement(date, bookedDates) {
+      const d = new Date(date);
+      const iso = d.toISOString().split("T")[0];
+      const cell = document.createElement("div");
+      const today = new Date();
+      cell.className = "day";
+      cell.textContent = d.getDate();
+      cell.dataset.date = iso;
+      dayElements.push(cell);
 
-    function getDateArray(start, end) {
-      const arr = [];
-      let dt = new Date(start);
-      while (dt <= end) {
-        arr.push(new Date(dt));
-        dt.setDate(dt.getDate() + 1);
+      if (d < today.setHours(0,0,0,0)) {
+        cell.classList.add("past-date");
+      } else if (bookedDates.has(iso)) {
+        cell.classList.add("unavailable");
+      } else {
+        cell.classList.add("available");
+        cell.onclick = () => handleDateClick(iso, cell);
       }
-      return arr;
+      return cell;
     }
-
-    let bookedDates = new Set();
-
-    function fetchAndRenderCalendar() {
-      fetch(csvUrl)
-        .then(res => res.text())
-        .then(data => {
-          const rows = data.split("\n").slice(1);
-          bookedDates.clear();
-
-          rows.forEach(row => {
-            const cells = row.split(",");
-            const pickup = new Date(cells[3]);
-            const dropoff = new Date(cells[4]);
-            getDateArray(pickup, dropoff).forEach(d => bookedDates.add(d.toISOString().split('T')[0]));
-          });
-
-          renderCalendar(currentYear, currentMonth);
-        });
-    }
-
-    function renderCalendar(year, month) {
-      calendarElement.innerHTML = "";
-      const monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
-      monthLabel.textContent = `${monthName} ${year}`;
-
-      const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      weekDays.forEach(d => {
-        const div = document.createElement("div");
-        div.textContent = d;
-        div.className = "day";
-        calendarElement.appendChild(div);
-      });
-
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-      for (let i = 0; i < firstDay; i++) {
-        const empty = document.createElement("div");
-        calendarElement.appendChild(empty);
-      }
-
-      for (let date = 1; date <= daysInMonth; date++) {
-        const d = new Date(year, month, date);
-        const iso = d.toISOString().split('T')[0];
-        const cell = document.createElement("div");
-        cell.textContent = date;
-
-        if (d < new Date().setHours(0,0,0,0)) {
-          cell.className = "day past-date";
-        } else {
-          cell.className = `day ${bookedDates.has(iso) ? 'unavailable' : 'available'}`;
-          if (!bookedDates.has(iso)) {
-            cell.onclick = () => {
-              const dateStr = d.toISOString().slice(0, 10);
-              document.getElementById("pickupInput").value = `${dateStr}T09:00`;
-              document.getElementById("dropoffInput").value = `${dateStr}T18:00`;
-              calculatePrice();
-              document.getElementById("booking").scrollIntoView({ behavior: 'smooth' });
-            };
-          }
-        }
-
-        calendarElement.appendChild(cell);
-      }
-
-      const prevBtn = document.getElementById("prevBtn");
-      const nextBtn = document.getElementById("nextBtn");
-
-      const minMonth = new Date(today.getFullYear(), today.getMonth());
-      const curMonth = new Date(currentYear, currentMonth);
-
-      prevBtn.disabled = curMonth <= minMonth;
-      nextBtn.disabled = curMonth >= maxMonth;
-    }
-
-    function changeMonth(offset) {
-      const newMonth = currentMonth + offset;
-      const newDate = new Date(currentYear, newMonth);
-
-      const minMonth = new Date(today.getFullYear(), today.getMonth());
-      const maxMonth = new Date(today.getFullYear(), today.getMonth() + 3);
-
-      if (newDate < minMonth || newDate > maxMonth) return;
-
-      currentMonth = newDate.getMonth();
-      currentYear = newDate.getFullYear();
-      renderCalendar(currentYear, currentMonth);
-    }
-
-    fetchAndRenderCalendar();
   </script>
 </body>
 </html>
