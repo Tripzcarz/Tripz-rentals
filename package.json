@@ -1,0 +1,7 @@
+{
+  "name": "tripz-booking",
+  "version": "1.0.0",
+  "dependencies": {
+    "googleapis": "^124.0.0"
+  }
+}
