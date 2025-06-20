@@ -11,7 +11,6 @@
     nav a { color: white; margin: 0 15px; text-decoration: none; font-weight: bold; }
     section { padding: 20px; }
     .hero { background: #ecf0f1; padding: 40px; text-align: center; }
-    .hero h1 { margin-bottom: 10px; }
     .car-card, .booking-form { border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-bottom: 20px; max-width: 600px; margin-left: auto; margin-right: auto; }
     .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 10px; }
     .day { padding: 10px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; }
@@ -211,65 +210,63 @@
     }
 
     function confirmBooking() {
-  const modal = document.getElementById("summaryModal");
-  modal.innerHTML = `
-    <div class="modal-content">
-      <h3>Processing Booking...</h3>
-      <p>Please wait while we confirm your booking.</p>
-      <div class="spinner"></div>
-    </div>
-  `;
-  modal.style.display = "flex";
+      const modal = document.getElementById("summaryModal");
+      modal.innerHTML = `
+        <div class="modal-content">
+          <h3>Processing Booking...</h3>
+          <p>Please wait while we confirm your booking.</p>
+          <div class="spinner"></div>
+        </div>
+      `;
+      modal.style.display = "flex";
 
-  fetch("/.netlify/functions/submit-booking", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      bookingId,
-      name: formCache.name,
-      phone: formCache.phone,
-      pickup: formCache.pickup,
-      dropoff: formCache.dropoff,
-      location: formCache.location,
-      total: estimatedTotal,
-      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-    })
-  })
-  .then(async res => {
-    if (!res.ok) {
-      throw new Error(`Server error: ${res.status}`);
+      fetch("/.netlify/functions/submit-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId,
+          name: formCache.name,
+          phone: formCache.phone,
+          pickup: formCache.pickup,
+          dropoff: formCache.dropoff,
+          location: formCache.location,
+          total: estimatedTotal,
+          timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          modal.innerHTML = `
+            <div class="modal-content">
+              <h3>Booking Confirmed!</h3>
+              <p>Your Booking ID: <strong>${bookingId}</strong></p>
+              <button onclick="window.location.href='payment.html?bookingId=${bookingId}'">Continue to Payment</button>
+            </div>
+          `;
+        } else {
+          modal.innerHTML = `
+            <div class="modal-content">
+              <h3>Booking Failed</h3>
+              <p>There was a problem saving your booking. Please try again.</p>
+              <button onclick="closeModal()">Close</button>
+            </div>
+          `;
+        }
+      })
+      .catch(err => {
+        console.error("Relay Error:", err);
+        modal.innerHTML = `
+          <div class="modal-content">
+            <h3>Network Error</h3>
+            <p>We couldn't reach the server. Please check your connection and try again.</p>
+            <button onclick="confirmBooking()">Retry</button>
+            <button onclick="closeModal()">Cancel</button>
+          </div>
+        `;
+      });
     }
-    const data = await res.json();
-    if (data.status === "success") {
-      modal.innerHTML = `
-        <div class="modal-content">
-          <h3>Booking Confirmed!</h3>
-          <p>Your Booking ID: <strong>${bookingId}</strong></p>
-          <button onclick="window.location.href='payment.html?bookingId=${bookingId}'">Continue to Payment</button>
-        </div>
-      `;
-    } else {
-      modal.innerHTML = `
-        <div class="modal-content">
-          <h3>Booking Failed</h3>
-          <p>There was a problem saving your booking. Please try again.</p>
-          <button onclick="closeModal()">Close</button>
-        </div>
-      `;
-    }
-  })
-  .catch(err => {
-    console.error("Relay Error:", err);
-    modal.innerHTML = `
-      <div class="modal-content">
-        <h3>Network or Server Error</h3>
-        <p>${err.message}</p>
-        <button onclick="confirmBooking()">Retry</button>
-        <button onclick="closeModal()">Cancel</button>
-      </div>
-    `;
-  });
-}
+
     updateCalendar();
   </script>
 </body>
