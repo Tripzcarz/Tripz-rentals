@@ -1,42 +1,69 @@
-// File: netlify/functions/submit-booking.js
+const { google } = require('googleapis');
 
-const fetch = require("node-fetch");
-
-exports.handler = async function(event, context) {
-  if (event.httpMethod !== "POST") {
+exports.handler = async (event, context) => {
+  // Allow only POST requests
+  if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      body: "Method Not Allowed"
+      body: JSON.stringify({ message: 'Method Not Allowed' }),
     };
   }
 
   try {
-    const booking = JSON.parse(event.body);
+    const body = JSON.parse(event.body);
 
-    const response = await fetch("https://script.google.com/macros/s/AKfycby1u1h8Cyi66xvsuEqdk9VUi9un_io4VVPOpVxW5uviAg8po-gjFeDfaCMmD4IAALUgvg/exec", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(booking)
+    const {
+      bookingId,
+      name,
+      phone,
+      pickup,
+      dropoff,
+      location,
+      total,
+      timestamp
+    } = body;
+
+    // Authorize Google Sheets access using environment variables
+    const auth = new google.auth.JWT(
+      process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      null,
+      process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      ['https://www.googleapis.com/auth/spreadsheets']
+    );
+
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+    // Append booking to the first sheet
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: 'Sheet1!A1',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[
+          timestamp,
+          bookingId,
+          name,
+          phone,
+          pickup,
+          dropoff,
+          location,
+          total
+        ]]
+      }
     });
-
-    const result = await response.json();
 
     return {
       statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type"
-      },
-      body: JSON.stringify(result)
+      body: JSON.stringify({ status: 'success' })
     };
+
   } catch (error) {
+    console.error('Function Error:', error);
     return {
       statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type"
-      },
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ status: 'error', message: error.message })
     };
   }
 };
