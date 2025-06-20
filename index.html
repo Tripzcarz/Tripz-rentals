@@ -82,192 +82,131 @@
       <button onclick="closeModal()">Cancel</button>
     </div>
   </div>
-  <script>
-    let currentMonth = new Date().getMonth();
-    let currentYear = new Date().getFullYear();
-    let selectedStart = null;
-    let selectedEnd = null;
-    let bookedDates = new Set(["2025-06-22", "2025-06-23"]);
-    let bookingId = '';
-    let formCache = {};
-    let estimatedTotal = 0;
+<script>
+  let currentMonth = new Date().getMonth();
+  let currentYear = new Date().getFullYear();
+  let selectedStart = null;
+  let selectedEnd = null;
+  let bookedDates = new Set(["2025-06-22", "2025-06-23"]);
+  let tempLockedDates = new Set();
+  let bookingId = '';
+  let formCache = {};
+  let estimatedTotal = 0;
 
-    function updateCalendar() {
-      const calendar = document.getElementById("calendar");
-      calendar.innerHTML = "";
-      const monthLabel = document.getElementById("monthLabel");
-      const firstDay = new Date(currentYear, currentMonth, 1);
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-      monthLabel.textContent = firstDay.toLocaleString("default", { month: "long", year: "numeric" });
+  function updateCalendar() {
+    const calendar = document.getElementById("calendar");
+    calendar.innerHTML = "";
+    const monthLabel = document.getElementById("monthLabel");
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    monthLabel.textContent = firstDay.toLocaleString("default", { month: "long", year: "numeric" });
 
-      for (let i = 0; i < firstDay.getDay(); i++) {
-        calendar.appendChild(document.createElement("div"));
-      }
-
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = new Date(currentYear, currentMonth, d);
-        const iso = date.toISOString().split("T")[0];
-        const cell = document.createElement("div");
-        cell.className = "day";
-        cell.textContent = d;
-        cell.dataset.date = iso;
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        if (date < today) {
-          cell.classList.add("past-date");
-        } else if (bookedDates.has(iso)) {
-          cell.classList.add("unavailable");
-        } else {
-          cell.classList.add("available");
-          cell.onclick = () => handleCalendarClick(iso, cell);
-        }
-        calendar.appendChild(cell);
-      }
+    for (let i = 0; i < firstDay.getDay(); i++) {
+      calendar.appendChild(document.createElement("div"));
     }
 
-    function changeMonth(offset) {
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(currentYear, currentMonth, d);
+      const iso = date.toISOString().split("T")[0];
+      const cell = document.createElement("div");
+      cell.className = "day";
+      cell.textContent = d;
+      cell.dataset.date = iso;
+
       const today = new Date();
-      const maxMonth = today.getMonth() + 3;
-      const newMonth = currentMonth + offset;
-      if (newMonth < today.getMonth() || newMonth > maxMonth) return;
-      currentMonth = newMonth;
-      updateCalendar();
-    }
-
-    function handleCalendarClick(dateStr, cell) {
-      if (!selectedStart || (selectedStart && selectedEnd)) {
-        selectedStart = new Date(dateStr);
-        selectedEnd = null;
-        clearSelections();
-        cell.classList.add("selected");
+      today.setHours(0,0,0,0);
+      if (date < today) {
+        cell.classList.add("past-date");
+      } else if (bookedDates.has(iso) || tempLockedDates.has(iso)) {
+        cell.classList.add("unavailable");
       } else {
-        selectedEnd = new Date(dateStr);
-        if (selectedEnd < selectedStart) [selectedStart, selectedEnd] = [selectedEnd, selectedStart];
-        clearSelections();
-        highlightRange(selectedStart, selectedEnd);
-        document.getElementById("pickupInput").value = `${selectedStart.toISOString().split("T")[0]}T00:00`;
-        document.getElementById("dropoffInput").value = `${selectedEnd.toISOString().split("T")[0]}T00:00`;
-        calculatePrice();
+        cell.classList.add("available");
+        cell.onclick = () => handleCalendarClick(iso, cell);
       }
+
+      calendar.appendChild(cell);
     }
+  }
 
-    function clearSelections() {
-      document.querySelectorAll(".day").forEach(d => d.classList.remove("selected", "range"));
+  function lockDatesTemporarily(start, end) {
+    const now = new Date();
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const iso = d.toISOString().split("T")[0];
+      tempLockedDates.add(iso);
     }
+    updateCalendar();
 
-    function highlightRange(start, end) {
-      const temp = new Date(start);
-      while (temp <= end) {
-        const iso = temp.toISOString().split("T")[0];
-        const el = document.querySelector(`[data-date='${iso}']`);
-        if (el) el.classList.add("range");
-        temp.setDate(temp.getDate() + 1);
-      }
-    }
-
-    function calculatePrice() {
-      const pickup = new Date(document.getElementById("pickupInput").value);
-      const dropoff = new Date(document.getElementById("dropoffInput").value);
-      if (pickup && dropoff && dropoff > pickup) {
-        const hourlyRate = 300;
-        const dailyRate = 2700;
-        const diff = (dropoff - pickup) / (1000 * 60 * 60);
-        const fullDays = Math.floor(diff / 24);
-        const hours = diff % 24;
-        estimatedTotal = fullDays * dailyRate;
-        estimatedTotal += hours > 6 ? dailyRate : Math.ceil(hours) * hourlyRate;
-        document.getElementById("priceDisplay").textContent = `Estimated Total: ₹${estimatedTotal}`;
-      }
-    }
-
-    function handleFormSubmit(e) {
-      e.preventDefault();
-      const form = e.target;
-      const name = form.name.value;
-      const phone = form.phone.value;
-      const pickup = new Date(form.pickup.value);
-      const dropoff = new Date(form.dropoff.value);
-      const location = form.location.value;
-
-      for (let d = new Date(pickup); d <= dropoff; d.setDate(d.getDate() + 1)) {
+    setTimeout(() => {
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const iso = d.toISOString().split("T")[0];
-        if (bookedDates.has(iso)) {
-          alert("Selected range includes unavailable dates!");
-          return;
-        }
+        tempLockedDates.delete(iso);
       }
+      updateCalendar();
+    }, 10 * 60 * 1000); // unlock after 10 minutes
+  }
 
-      bookingId = 'TRIPZ' + Date.now();
-      formCache = { name, phone, pickup: form.pickup.value, dropoff: form.dropoff.value, location };
+  function confirmBooking() {
+    const modal = document.getElementById("summaryModal");
+    modal.innerHTML = `
+      <div class="modal-content">
+        <h3>Processing Booking...</h3>
+        <p>Please wait while we confirm your booking.</p>
+        <div class="spinner"></div>
+      </div>
+    `;
+    modal.style.display = "flex";
 
-      const summary = `Booking ID: ${bookingId}<br>Name: ${name}<br>Phone: ${phone}<br>Pickup: ${form.pickup.value}<br>Drop-off: ${form.dropoff.value}<br>Location: ${location}<br>Estimated Total: ₹${estimatedTotal}`;
-      document.getElementById("summaryDetails").innerHTML = summary;
-      document.getElementById("summaryModal").style.display = "flex";
-    }
-
-    function closeModal() {
-      document.getElementById("summaryModal").style.display = "none";
-    }
-
-    function confirmBooking() {
-      const modal = document.getElementById("summaryModal");
-      modal.innerHTML = `
-        <div class="modal-content">
-          <h3>Processing Booking...</h3>
-          <p>Please wait while we confirm your booking.</p>
-          <div class="spinner"></div>
-        </div>
-      `;
-      modal.style.display = "flex";
-
-      fetch("/.netlify/functions/submit-booking", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookingId,
-          name: formCache.name,
-          phone: formCache.phone,
-          pickup: formCache.pickup,
-          dropoff: formCache.dropoff,
-          location: formCache.location,
-          total: estimatedTotal,
-          timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-        })
+    fetch("/.netlify/functions/submit-booking", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bookingId,
+        name: formCache.name,
+        phone: formCache.phone,
+        pickup: formCache.pickup,
+        dropoff: formCache.dropoff,
+        location: formCache.location,
+        total: estimatedTotal,
+        timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "success") {
-          modal.innerHTML = `
-            <div class="modal-content">
-              <h3>Booking Confirmed!</h3>
-              <p>Your Booking ID: <strong>${bookingId}</strong></p>
-              <button onclick="window.location.href='payment.html?bookingId=${bookingId}'">Continue to Payment</button>
-            </div>
-          `;
-        } else {
-          modal.innerHTML = `
-            <div class="modal-content">
-              <h3>Booking Failed</h3>
-              <p>There was a problem saving your booking. Please try again.</p>
-              <button onclick="closeModal()">Close</button>
-            </div>
-          `;
-        }
-      })
-      .catch(err => {
-        console.error("Relay Error:", err);
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "success") {
+        const start = new Date(formCache.pickup);
+        const end = new Date(formCache.dropoff);
+        lockDatesTemporarily(start, end);
         modal.innerHTML = `
           <div class="modal-content">
-            <h3>Network Error</h3>
-            <p>We couldn't reach the server. Please check your connection and try again.</p>
-            <button onclick="confirmBooking()">Retry</button>
-            <button onclick="closeModal()">Cancel</button>
+            <h3>Booking Confirmed!</h3>
+            <p>Your Booking ID: <strong>${bookingId}</strong></p>
+            <button onclick="window.location.href='payment.html?bookingId=${bookingId}'">Continue to Payment</button>
           </div>
         `;
-      });
-    }
+      } else {
+        modal.innerHTML = `
+          <div class="modal-content">
+            <h3>Booking Failed</h3>
+            <p>There was a problem saving your booking. Please try again.</p>
+            <button onclick="closeModal()">Close</button>
+          </div>
+        `;
+      }
+    })
+    .catch(err => {
+      console.error("Relay Error:", err);
+      modal.innerHTML = `
+        <div class="modal-content">
+          <h3>Network Error</h3>
+          <p>We couldn't reach the server. Please check your connection and try again.</p>
+          <button onclick="confirmBooking()">Retry</button>
+          <button onclick="closeModal()">Cancel</button>
+        </div>
+      `;
+    });
+  }
 
-    updateCalendar();
-  </script>
+  updateCalendar();
+</script>
 </body>
 </html>
