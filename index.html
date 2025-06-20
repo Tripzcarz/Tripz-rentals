@@ -129,22 +129,27 @@ function updateCalendar() {
 }
 
 function handleCalendarClick(dateStr, cell) {
+  const clickedDate = new Date(dateStr);
+  clearSelections();
+
   if (!selectedStart || (selectedStart && selectedEnd)) {
-    selectedStart = new Date(dateStr);
+    selectedStart = clickedDate;
     selectedEnd = null;
-    clearSelections();
     cell.classList.add("selected");
   } else {
-selectedEnd = new Date(dateStr);
-if (selectedEnd < selectedStart) [selectedStart, selectedEnd] = [selectedEnd, selectedStart];
-clearSelections();
-highlightRange(new Date(selectedStart), new Date(selectedEnd)); // use copies
-// autofill calender
-const pickupDate = new Date(selectedStart);
-const dropoffDate = new Date(selectedEnd);
-pickupInput.value = `${pickupDate.toISOString().split("T")[0]}T09:00`;
-dropoffInput.value = `${dropoffDate.toISOString().split("T")[0]}T09:00`;
+    if (clickedDate < selectedStart) {
+      selectedEnd = selectedStart;
+      selectedStart = clickedDate;
+    } else {
+      selectedEnd = clickedDate;
+    }
 
+    highlightRange(selectedStart, selectedEnd);
+
+    // Set form fields (09:00 default)
+    const formatDateTime = d => d.toISOString().split("T")[0] + "T09:00";
+    document.getElementById("pickupInput").value = formatDateTime(selectedStart);
+    document.getElementById("dropoffInput").value = formatDateTime(selectedEnd);
     calculatePrice();
   }
 }
