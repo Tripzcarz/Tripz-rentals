@@ -45,7 +45,6 @@
 
   <section id="cars" class="cars">
     <h2>Available Cars</h2>
-
     <div class="car-card">
       <h3>Nissan Magnite 2021 (CVT Turbo)</h3>
       <p>Fuel: Petrol | Transmission: Automatic | AC: Yes</p>
@@ -61,11 +60,35 @@
   </section>
 
   <section id="booking" class="booking-form">
-    <!-- Booking form stays the same -->
+    <h2>Book Your Ride</h2>
+    <form action="https://script.google.com/macros/s/AKfycbwJQrz3KyTcKW6AUBdprXyN6SagdP8TCnJhY5twn6SW7F0FpN3HaHyjIzA6W7GATvuM/exec" method="POST" onsubmit="handleFormSubmit(event)">
+      <label>Name:</label><br />
+      <input type="text" name="name" required /><br /><br />
+
+      <label>Phone Number:</label><br />
+      <input type="tel" name="phone" required /><br /><br />
+
+      <label>Pickup Date & Time:</label><br />
+      <input type="datetime-local" name="pickup" required onchange="calculatePrice()" /><br /><br />
+
+      <label>Drop-off Date & Time:</label><br />
+      <input type="datetime-local" name="dropoff" required onchange="calculatePrice()" /><br /><br />
+
+      <label>Pickup/Drop Location:</label><br />
+      <input type="text" name="location" /><br /><br />
+
+      <div id="priceDisplay">Estimated Total: ₹0</div>
+
+      <input type="submit" value="Submit" />
+    </form>
   </section>
 
   <section id="contact" class="contact">
-    <!-- Contact section stays the same -->
+    <h2>Contact Us</h2>
+    <p>📞 +91 81429 45805</p>
+    <p>📧 tripzcarz@gmail.com</p>
+    <p>📍 Tirupati, Andhra Pradesh</p>
+    <p><a href="https://wa.me/918142945805">Message on WhatsApp</a></p>
   </section>
 
   <footer>
@@ -73,6 +96,60 @@
   </footer>
 
   <script>
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+
+      fetch(form.action, {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          window.location.href = "adhar-upload.html";
+        } else {
+          alert("Submission failed. Try again.");
+        }
+      })
+      .catch(err => alert("Error: " + err.message));
+    }
+
+    function calculatePrice() {
+      const pickup = document.querySelector('input[name="pickup"]').value;
+      const dropoff = document.querySelector('input[name="dropoff"]').value;
+
+      if (!pickup || !dropoff) return;
+
+      const start = new Date(pickup);
+      const end = new Date(dropoff);
+
+      if (start >= end) {
+        document.getElementById("priceDisplay").textContent = "Invalid time selection";
+        return;
+      }
+
+      const hourlyRate = 300;
+      const dailyRate = 2700;
+      const thresholdHours = 6;
+
+      const diffMs = end - start;
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      const fullDays = Math.floor(diffHours / 24);
+      const remainingHours = diffHours % 24;
+
+      let total = fullDays * dailyRate;
+      if (remainingHours > thresholdHours) {
+        total += dailyRate;
+      } else {
+        total += Math.ceil(remainingHours) * hourlyRate;
+      }
+
+      document.getElementById("priceDisplay").textContent = `Estimated Total: ₹${total}`;
+    }
+
     let calendarElement = document.getElementById("calendar");
     let monthLabel = document.getElementById("monthLabel");
     let today = new Date();
@@ -138,7 +215,7 @@
         const cell = document.createElement("div");
         cell.textContent = date;
 
-        if (d < today.setHours(0,0,0,0)) {
+        if (d < new Date().setHours(0,0,0,0)) {
           cell.className = "day past-date";
         } else {
           cell.className = `day ${bookedDates.has(iso) ? 'unavailable' : 'available'}`;
