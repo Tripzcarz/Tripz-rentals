@@ -15,14 +15,16 @@
     .contact, .booking-form, .cars { margin-top: 30px; }
     .car-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
     .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; max-width: 400px; margin-top: 10px; }
-    .day { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+    .day { padding: 10px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; }
     .available { background-color: #d4edda; }
-    .unavailable { background-color: #f8d7da; }
+    .unavailable { background-color: #f8d7da; cursor: not-allowed; }
     .past-date { background-color: #eeeeee; color: #aaa; pointer-events: none; }
     footer { background: #2c3e50; color: white; text-align: center; padding: 15px; margin-top: 40px; }
     #priceDisplay { font-size: 18px; font-weight: bold; margin-top: 15px; color: #2c3e50; }
     .calendar-nav { margin-top: 10px; text-align: center; }
     .calendar-nav button { margin: 0 5px; padding: 5px 10px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: #fff; padding: 20px; border-radius: 8px; max-width: 400px; text-align: left; }
   </style>
 </head>
 <body>
@@ -53,7 +55,7 @@
       <div class="calendar-nav">
         <button id="prevBtn" onclick="changeMonth(-1)">&lt;</button>
         <span id="monthLabel"></span>
-        <button onclick="changeMonth(1)">&gt;</button>
+        <button id="nextBtn" onclick="changeMonth(1)">&gt;</button>
       </div>
       <div id="calendar" class="calendar"></div>
     </div>
@@ -61,7 +63,7 @@
 
   <section id="booking" class="booking-form">
     <h2>Book Your Ride</h2>
-    <form action="https://script.google.com/macros/s/AKfycbwJQrz3KyTcKW6AUBdprXyN6SagdP8TCnJhY5twn6SW7F0FpN3HaHyjIzA6W7GATvuM/exec" method="POST" onsubmit="handleFormSubmit(event)">
+    <form id="bookingForm" action="https://script.google.com/macros/s/AKfycbwJQrz3KyTcKW6AUBdprXyN6SagdP8TCnJhY5twn6SW7F0FpN3HaHyjIzA6W7GATvuM/exec" method="POST" onsubmit="handleFormSubmit(event)">
       <label>Name:</label><br />
       <input type="text" name="name" required /><br /><br />
 
@@ -69,10 +71,10 @@
       <input type="tel" name="phone" required /><br /><br />
 
       <label>Pickup Date & Time:</label><br />
-      <input type="datetime-local" name="pickup" required onchange="calculatePrice()" /><br /><br />
+      <input id="pickupInput" type="datetime-local" name="pickup" required onchange="calculatePrice()" /><br /><br />
 
       <label>Drop-off Date & Time:</label><br />
-      <input type="datetime-local" name="dropoff" required onchange="calculatePrice()" /><br /><br />
+      <input id="dropoffInput" type="datetime-local" name="dropoff" required onchange="calculatePrice()" /><br /><br />
 
       <label>Pickup/Drop Location:</label><br />
       <input type="text" name="location" /><br /><br />
@@ -91,6 +93,15 @@
     <p><a href="https://wa.me/918142945805">Message on WhatsApp</a></p>
   </section>
 
+  <div class="modal" id="summaryModal">
+    <div class="modal-content">
+      <h3>Confirm Your Booking</h3>
+      <p id="summaryDetails"></p>
+      <button onclick="confirmBooking()">Confirm</button>
+      <button onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+
   <footer>
     <p>&copy; 2025 Tripz Self Drive Car Rentals. All rights reserved.</p>
   </footer>
@@ -99,6 +110,31 @@
     function handleFormSubmit(e) {
       e.preventDefault();
       const form = e.target;
+      const name = form.name.value;
+      const phone = form.phone.value;
+      const pickup = form.pickup.value;
+      const dropoff = form.dropoff.value;
+      const location = form.location.value;
+      const estimate = document.getElementById("priceDisplay").textContent;
+
+      document.getElementById("summaryDetails").innerHTML = `
+        <strong>Name:</strong> ${name}<br>
+        <strong>Phone:</strong> ${phone}<br>
+        <strong>Pickup:</strong> ${pickup}<br>
+        <strong>Drop-off:</strong> ${dropoff}<br>
+        <strong>Location:</strong> ${location}<br>
+        <strong>${estimate}</strong><br>
+      `;
+      document.getElementById("summaryModal").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("summaryModal").style.display = "none";
+    }
+
+    function confirmBooking() {
+      closeModal();
+      const form = document.getElementById("bookingForm");
       const formData = new FormData(form);
 
       fetch(form.action, {
@@ -108,6 +144,7 @@
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success') {
+          alert("Booking submitted successfully!");
           window.location.href = "adhar-upload.html";
         } else {
           alert("Submission failed. Try again.");
@@ -119,12 +156,10 @@
     function calculatePrice() {
       const pickup = document.querySelector('input[name="pickup"]').value;
       const dropoff = document.querySelector('input[name="dropoff"]').value;
-
       if (!pickup || !dropoff) return;
 
       const start = new Date(pickup);
       const end = new Date(dropoff);
-
       if (start >= end) {
         document.getElementById("priceDisplay").textContent = "Invalid time selection";
         return;
@@ -133,10 +168,8 @@
       const hourlyRate = 300;
       const dailyRate = 2700;
       const thresholdHours = 6;
-
       const diffMs = end - start;
       const diffHours = diffMs / (1000 * 60 * 60);
-
       const fullDays = Math.floor(diffHours / 24);
       const remainingHours = diffHours % 24;
 
@@ -155,7 +188,7 @@
     let today = new Date();
     let currentMonth = today.getMonth();
     let currentYear = today.getFullYear();
-
+    const maxMonth = new Date(today.getFullYear(), today.getMonth() + 3);
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqsDIgnx2gUXhwdmutkPXl0c7NFk_wbe2PPC_aFfTqYO3TmxQbFpdPMZnKU_zRfL3WbwfikE0F7P_i/pub?output=csv";
 
     function getDateArray(start, end) {
@@ -219,26 +252,38 @@
           cell.className = "day past-date";
         } else {
           cell.className = `day ${bookedDates.has(iso) ? 'unavailable' : 'available'}`;
+          if (!bookedDates.has(iso)) {
+            cell.onclick = () => {
+              const dateStr = d.toISOString().slice(0, 10);
+              document.getElementById("pickupInput").value = `${dateStr}T09:00`;
+              document.getElementById("dropoffInput").value = `${dateStr}T18:00`;
+              calculatePrice();
+              document.getElementById("booking").scrollIntoView({ behavior: 'smooth' });
+            };
+          }
         }
 
         calendarElement.appendChild(cell);
       }
 
       const prevBtn = document.getElementById("prevBtn");
-      if (year === today.getFullYear() && month <= today.getMonth()) {
-        prevBtn.disabled = true;
-      } else {
-        prevBtn.disabled = false;
-      }
+      const nextBtn = document.getElementById("nextBtn");
+
+      const minMonth = new Date(today.getFullYear(), today.getMonth());
+      const curMonth = new Date(currentYear, currentMonth);
+
+      prevBtn.disabled = curMonth <= minMonth;
+      nextBtn.disabled = curMonth >= maxMonth;
     }
 
     function changeMonth(offset) {
       const newMonth = currentMonth + offset;
       const newDate = new Date(currentYear, newMonth);
 
-      if (newDate.getFullYear() < today.getFullYear() || (newDate.getFullYear() === today.getFullYear() && newDate.getMonth() < today.getMonth())) {
-        return;
-      }
+      const minMonth = new Date(today.getFullYear(), today.getMonth());
+      const maxMonth = new Date(today.getFullYear(), today.getMonth() + 3);
+
+      if (newDate < minMonth || newDate > maxMonth) return;
 
       currentMonth = newDate.getMonth();
       currentYear = newDate.getFullYear();
