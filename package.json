@@ -1,7 +1,7 @@
 {
-  "name": "tripz-booking",
-  "version": "1.0.0",
+  "name": "tripz-site",
+  "type": "module",
   "dependencies": {
-    "googleapis": "^124.0.0"
+    "@neondatabase/serverless": "^0.6.0"
   }
 }
