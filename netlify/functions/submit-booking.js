@@ -1,69 +1,28 @@
-const { google } = require('googleapis');
+import { Client } from '@neondatabase/serverless';
 
-exports.handler = async (event, context) => {
-  // Allow only POST requests
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ message: 'Method Not Allowed' }),
-    };
+export default async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ status: "error", message: "Method not allowed" });
   }
 
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+
+  const {
+    bookingId, name, phone, pickup, dropoff, location, total, timestamp
+  } = req.body;
+
   try {
-    const body = JSON.parse(event.body);
+    await client.query(`
+      INSERT INTO bookings (booking_id, name, phone, pickup, dropoff, location, total, timestamp)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [bookingId, name, phone, pickup, dropoff, location, total, timestamp]);
 
-    const {
-      bookingId,
-      name,
-      phone,
-      pickup,
-      dropoff,
-      location,
-      total,
-      timestamp
-    } = body;
-
-    // Authorize Google Sheets access using environment variables
-    const auth = new google.auth.JWT(
-      process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      null,
-      process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      ['https://www.googleapis.com/auth/spreadsheets']
-    );
-
-    const sheets = google.sheets({ version: 'v4', auth });
-
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-    // Append booking to the first sheet
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: 'Sheet1!A1',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [[
-          timestamp,
-          bookingId,
-          name,
-          phone,
-          pickup,
-          dropoff,
-          location,
-          total
-        ]]
-      }
-    });
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ status: 'success' })
-    };
-
+    return res.status(200).json({ status: "success" });
   } catch (error) {
-    console.error('Function Error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ status: 'error', message: error.message })
-    };
+    console.error(error);
+    return res.status(500).json({ status: "error", message: "DB error" });
+  } finally {
+    await client.end();
   }
 };
