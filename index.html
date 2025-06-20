@@ -135,17 +135,15 @@ function handleCalendarClick(dateStr, cell) {
     clearSelections();
     cell.classList.add("selected");
   } else {
-    selectedEnd = new Date(dateStr);
-    if (selectedEnd < selectedStart) [selectedStart, selectedEnd] = [selectedEnd, selectedStart];
-    clearSelections();
-    highlightRange(selectedStart, selectedEnd);
-
-    // autofill form
-    const pickupInput = document.getElementById("pickupInput");
-    const dropoffInput = document.getElementById("dropoffInput");
-
-    pickupInput.value = `${selectedStart.toISOString().split("T")[0]}T09:00`;
-    dropoffInput.value = `${selectedEnd.toISOString().split("T")[0]}T09:00`;
+selectedEnd = new Date(dateStr);
+if (selectedEnd < selectedStart) [selectedStart, selectedEnd] = [selectedEnd, selectedStart];
+clearSelections();
+highlightRange(new Date(selectedStart), new Date(selectedEnd)); // use copies
+// autofill calender
+const pickupDate = new Date(selectedStart);
+const dropoffDate = new Date(selectedEnd);
+pickupInput.value = `${pickupDate.toISOString().split("T")[0]}T09:00`;
+dropoffInput.value = `${dropoffDate.toISOString().split("T")[0]}T09:00`;
 
     calculatePrice();
   }
