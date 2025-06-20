@@ -37,7 +37,7 @@
   </nav>
   <section class="hero">
     <h1>Book your Nissan Magnite</h1>
-    <p>₹2,700/day or ₹300/hour | CVT Automatic | Petrol</p>
+    <p>₹2700/day or ₹300/hour | CVT Automatic | Petrol</p>
     <div class="calendar-nav">
       <button id="prevBtn" onclick="changeMonth(-1)">&lt;</button>
       <span id="monthLabel"></span>
@@ -75,9 +75,10 @@
     let currentYear = new Date().getFullYear();
     let selectedStart = null;
     let selectedEnd = null;
-    let bookedDates = new Set();
+    let bookedDates = new Set(["2025-06-22", "2025-06-23"]);
     let bookingId = '';
     let formCache = {};
+    let estimatedTotal = 0;
 
     function updateCalendar() {
       const calendar = document.getElementById("calendar");
@@ -158,9 +159,9 @@
         const diff = (dropoff - pickup) / (1000 * 60 * 60);
         const fullDays = Math.floor(diff / 24);
         const hours = diff % 24;
-        let total = fullDays * dailyRate;
-        total += hours > 6 ? dailyRate : Math.ceil(hours) * hourlyRate;
-        document.getElementById("priceDisplay").textContent = `Estimated Total: ₹${total}`;
+        estimatedTotal = fullDays * dailyRate;
+        estimatedTotal += hours > 6 ? dailyRate : Math.ceil(hours) * hourlyRate;
+        document.getElementById("priceDisplay").textContent = `Estimated Total: ₹${estimatedTotal}`;
       }
     }
 
@@ -184,7 +185,7 @@
       bookingId = 'TRIPZ' + Date.now();
       formCache = { name, phone, pickup: form.pickup.value, dropoff: form.dropoff.value, location };
 
-      const summary = `Booking ID: ${bookingId}<br>Name: ${name}<br>Phone: ${phone}<br>Pickup: ${form.pickup.value}<br>Drop-off: ${form.dropoff.value}<br>Location: ${location}<br>` + document.getElementById("priceDisplay").textContent;
+      const summary = `Booking ID: ${bookingId}<br>Name: ${name}<br>Phone: ${phone}<br>Pickup: ${form.pickup.value}<br>Drop-off: ${form.dropoff.value}<br>Location: ${location}<br>Estimated Total: ₹${estimatedTotal}`;
       document.getElementById("summaryDetails").innerHTML = summary;
       document.getElementById("summaryModal").style.display = "flex";
     }
@@ -194,34 +195,40 @@
     }
 
     function confirmBooking() {
-  document.getElementById("summaryModal").style.display = "none";
-  alert("Processing your booking...");
+      document.getElementById("summaryModal").style.display = "none";
+      alert("Processing your booking...");
 
-  fetch("https://script.google.com/macros/s/AKfycbyGTgEJ4_uGWV5iVnhsL7W7wjhjVKcEhN6RJ8NKn7rutQKHbBoiwjD2V2yH5NPhblLSyA/exec", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      bookingId,
-      name: formCache.name,
-      phone: formCache.phone,
-      pickup: formCache.pickup,
-      dropoff: formCache.dropoff,
-      location: formCache.location,
-      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === "success") {
-      alert("Booking Confirmed! ID: " + bookingId);
-      window.location.href = `payment.html?bookingId=${bookingId}`;
-    } else {
-      alert("Failed to confirm booking. Please try again.");
+      fetch("https://script.google.com/macros/s/AKfycbyGTgEJ4_uGWV5iVnhsL7W7wjhjVKcEhN6RJ8NKn7rutQKHbBoiwjD2V2yH5NPhblLSyA/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId,
+          name: formCache.name,
+          phone: formCache.phone,
+          pickup: formCache.pickup,
+          dropoff: formCache.dropoff,
+          location: formCache.location,
+          total: estimatedTotal,
+          timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          alert("Booking Confirmed! ID: " + bookingId);
+          window.location.href = `payment.html?bookingId=${bookingId}`;
+        } else {
+          alert("Failed to confirm booking. Please try again.");
+        }
+      })
+      .catch(err => {
+        console.error("Error:", err);
+        alert("Network error! Redirecting anyway...");
+        window.location.href = `payment .html?bookingId=${bookingId}`;
+      });
     }
-  })
-  .catch(err => {
-    console.error("Error:", err);
-    alert("Network error! Redirecting anyway...");
-    window.location.href = `payment .html?bookingId=${bookingId}`;
-  });
-}
+
+    updateCalendar();
+  </script>
+</body>
+</html>
