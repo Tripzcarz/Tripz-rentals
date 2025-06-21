@@ -150,6 +150,10 @@ function updateCalendar() {
   }
 }
 
+function closeModal() {
+  document.getElementById("summaryModal").style.display = "none";
+}
+
 function handleFormSubmit(event) {
   event.preventDefault(); // prevent page refresh
   const form = event.target;
