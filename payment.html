@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tripz Payment</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
@@ -13,11 +13,9 @@
     .bold { font-weight: bold; }
     .highlight { color: #d35400; font-weight: bold; }
     .copy { background: #ecf0f1; padding: 10px; font-weight: bold; margin-top: 10px; border-radius: 5px; }
-    button { margin-top: 20px; padding: 10px 20px; font-weight: bold; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button { margin-top: 20px; padding: 10px 20px; font-weight: bold; background: #25D366; color: white; border: none; border-radius: 5px; cursor: pointer; }
     footer { text-align: center; padding: 20px; font-size: 14px; color: gray; }
     img.qr { display: block; margin: 10px auto; border: 1px solid #ccc; border-radius: 8px; }
-    #uploadForm { margin-top: 20px; }
-    #statusMsg { margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -27,10 +25,10 @@
 
   <div class="container">
     <h2>Complete Your Booking</h2>
-    <p>Your Booking ID: <span class="highlight" id="bookingIdText"></span></p>
+    <p>Your Booking ID: <span class="highlight" id="bookingId"></span></p>
 
     <div class="info-box">
-      <p>Scan the QR code or use either UPI ID below to pay the booking amount.</p>
+      <p>Scan the QR code or use either UPI ID below to pay the booking amount (includes refundable deposit).</p>
       <p class="bold">UPI IDs:</p>
       <ul>
         <li><span class="highlight">pullurharish2@ibl</span></li>
@@ -38,21 +36,11 @@
       </ul>
       <p class="bold">Booking Note: Must include Booking ID</p>
       <img class="qr" src="tripz_qr.jpg" alt="UPI QR Code" width="200" />
-      <div class="copy">Mention Booking ID in payment note</div>
+      <div class="copy">Use either UPI ID above. Mention Booking ID in payment note.</div>
+      <button onclick="sendWhatsApp()">Send Screenshot via WhatsApp</button>
     </div>
 
-    <p id="countdownText" style="margin-top: 15px; font-weight: bold; color: red;"></p>
-
-    <form id="uploadForm" enctype="multipart/form-data">
-      <label for="screenshot">Upload Payment Screenshot:</label><br />
-      <input type="file" name="screenshot" accept="image/*" required /><br /><br />
-      <input type="hidden" name="bookingId" id="bookingIdInput" />
-      <button type="submit">Upload Screenshot</button>
-    </form>
-
-    <div id="statusMsg"></div>
-
-    <p><strong>Note:</strong> We’ll verify your payment and send confirmation via email or SMS.</p>
+    <p><strong>Note:</strong> Your booking will only be confirmed after payment screenshot is received.</p>
   </div>
 
   <footer>
@@ -60,71 +48,20 @@
   </footer>
 
   <script>
-    const bookingId = localStorage.getItem("booking_id");
-    document.getElementById("bookingIdText").textContent = bookingId;
-    document.getElementById("bookingIdInput").value = bookingId;
-
-    // Countdown
-    let timeLeft = 600;
-    const countdownText = document.getElementById("countdownText");
-
-    const countdownInterval = setInterval(() => {
-      const mins = Math.floor(timeLeft / 60);
-      const secs = timeLeft % 60;
-      countdownText.textContent = `⏳ Time left to complete payment: ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-
-      if (--timeLeft < 0) {
-        clearInterval(countdownInterval);
-        countdownText.textContent = "⛔ Time expired. Booking will be cancelled.";
-        cancelBookingAndRedirect();
-      }
-    }, 1000);
-
-    function cancelBookingAndRedirect() {
-      if (!bookingId) return;
-      fetch("/.netlify/functions/cancel-booking", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId })
-      }).finally(() => {
-        localStorage.removeItem("booking_id");
-        alert("Booking expired due to timeout.");
-        window.location.href = "index.html";
-      });
+    function generateBookingID() {
+      const id = localStorage.getItem("booking_id") || 'TRIPZ' + Math.floor(Math.random() * 100000);
+      localStorage.setItem("booking_id", id);
+      document.getElementById("bookingId").textContent = id;
     }
 
-    // Upload handler
-    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const status = document.getElementById("statusMsg");
-      status.textContent = "Uploading...";
+    function sendWhatsApp() {
+      const bookingId = localStorage.getItem("booking_id") || '';
+      const message = `Hello, I have paid for Tripz booking. My Booking ID is ${bookingId}. Screenshot attached.`;
+      const encodedMsg = encodeURIComponent(message);
+      window.location.href = `https://wa.me/918142945805?text=${encodedMsg}`;
+    }
 
-      const formData = new FormData(document.getElementById("uploadForm"));
-
-      const res = await fetch("/.netlify/functions/upload-screenshot", {
-        method: "POST",
-        body: formData
-      });
-
-      const data = await res.json();
-      if (data.status === "success") {
-        status.textContent = "✅ Upload successful! Thank you for booking with Tripz.";
-        clearInterval(countdownInterval);
-        localStorage.removeItem("booking_id");
-      } else {
-        status.textContent = "❌ Upload failed. Please try again.";
-      }
-    });
-
-    // Optional: Cancel on tab close
-    window.addEventListener("beforeunload", function () {
-      if (bookingId) {
-        navigator.sendBeacon(
-          "/.netlify/functions/cancel-booking",
-          JSON.stringify({ bookingId })
-        );
-      }
-    });
+    generateBookingID();
   </script>
 </body>
 </html>
