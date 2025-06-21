@@ -1,28 +1,42 @@
-import { createBlob } from '@netlify/blobs';
+// netlify/functions/upload-screenshot.js
+import { blobs } from '@netlify/blobs';
+import multiparty from 'multiparty';
+import fs from 'fs/promises';
+
+export const config = {
+  bodyParser: false
+};
 
 export default async (req, context) => {
-  const contentType = req.headers.get("content-type") || "";
-  if (!contentType.startsWith("multipart/form-data")) {
-    return new Response("Unsupported Media Type", { status: 415 });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ status: "error", message: "Only POST allowed" }), { status: 405 });
   }
 
-  const formData = await req.formData();
-  const file = formData.get("screenshot");
+  const form = new multiparty.Form();
 
-  if (!file) {
-    return new Response("No file uploaded", { status: 400 });
-  }
-
-  const bookingId = formData.get("bookingId") || "unknown";
-  const blobName = `screenshots/${bookingId}-${Date.now()}.jpg`;
-
-  const blob = await createBlob({
-    name: blobName,
-    content: await file.arrayBuffer(),
-    contentType: file.type,
+  const parsed = await new Promise((resolve, reject) => {
+    form.parse(req, (err, fields, files) => {
+      if (err) reject(err);
+      else resolve({ fields, files });
+    });
   });
 
-  return new Response(JSON.stringify({ status: "success", url: blob.url }), {
-    headers: { "Content-Type": "application/json" },
+  const bookingId = parsed.fields.bookingId?.[0];
+  const file = parsed.files.screenshot?.[0];
+
+  if (!bookingId || !file) {
+    return new Response(JSON.stringify({ status: "error", message: "Missing bookingId or file" }), { status: 400 });
+  }
+
+  const fileBuffer = await fs.readFile(file.path);
+  const blobStore = blobs();
+
+  await blobStore.set(`screenshots/${bookingId}.jpg`, fileBuffer, {
+    contentType: file.headers['content-type']
+  });
+
+  return new Response(JSON.stringify({ status: "success" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" }
   });
 };
