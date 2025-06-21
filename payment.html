@@ -16,7 +16,8 @@
     button { margin-top: 20px; padding: 10px 20px; font-weight: bold; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; }
     footer { text-align: center; padding: 20px; font-size: 14px; color: gray; }
     img.qr { display: block; margin: 10px auto; border: 1px solid #ccc; border-radius: 8px; }
-    .success-msg { color: green; font-weight: bold; margin-top: 20px; text-align: center; }
+    #uploadForm { margin-top: 20px; }
+    #statusMsg { margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -26,10 +27,10 @@
 
   <div class="container">
     <h2>Complete Your Booking</h2>
-    <p>Your Booking ID: <span class="highlight" id="bookingId"></span></p>
+    <p>Your Booking ID: <span class="highlight" id="bookingIdText"></span></p>
 
     <div class="info-box">
-      <p>Scan the QR code or use either UPI ID below to pay the booking amount (includes refundable deposit).</p>
+      <p>Scan the QR code or use either UPI ID below to pay the booking amount.</p>
       <p class="bold">UPI IDs:</p>
       <ul>
         <li><span class="highlight">pullurharish2@ibl</span></li>
@@ -37,22 +38,21 @@
       </ul>
       <p class="bold">Booking Note: Must include Booking ID</p>
       <img class="qr" src="tripz_qr.jpg" alt="UPI QR Code" width="200" />
-      <div class="copy">Use either UPI ID above. Mention Booking ID in payment note.</div>
-
-      <p><strong class="highlight">Time left to complete payment: <span id="timerText"></span></strong></p>
-
-      <form id="uploadForm" enctype="multipart/form-data">
-        <label for="screenshot">Upload Payment Screenshot:</label><br><br>
-        <input type="file" id="screenshot" name="screenshot" accept="image/*" required /><br><br>
-        <button type="submit">Submit Screenshot</button>
-      </form>
-
-      <div id="uploadStatus" class="success-msg" style="display:none;">
-        ✅ Screenshot uploaded successfully! We will email you the confirmation shortly.
-      </div>
+      <div class="copy">Mention Booking ID in payment note</div>
     </div>
 
-    <p><strong>Note:</strong> Your booking will only be confirmed after payment is verified.</p>
+    <p id="countdownText" style="margin-top: 15px; font-weight: bold; color: red;"></p>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+      <label for="screenshot">Upload Payment Screenshot:</label><br />
+      <input type="file" name="screenshot" accept="image/*" required /><br /><br />
+      <input type="hidden" name="bookingId" id="bookingIdInput" />
+      <button type="submit">Upload Screenshot</button>
+    </form>
+
+    <div id="statusMsg"></div>
+
+    <p><strong>Note:</strong> We’ll verify your payment and send confirmation via email or SMS.</p>
   </div>
 
   <footer>
@@ -60,78 +60,71 @@
   </footer>
 
   <script>
-    let timerInterval;
     const bookingId = localStorage.getItem("booking_id");
-    document.getElementById("bookingId").textContent = bookingId;
+    document.getElementById("bookingIdText").textContent = bookingId;
+    document.getElementById("bookingIdInput").value = bookingId;
 
-    // Countdown Timer
-    function startCountdown(duration) {
-      let timer = duration, minutes, seconds;
-      timerInterval = setInterval(() => {
-        minutes = Math.floor(timer / 60);
-        seconds = timer % 60;
-        document.getElementById("timerText").textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    // Countdown
+    let timeLeft = 600;
+    const countdownText = document.getElementById("countdownText");
 
-        if (--timer < 0) {
-          clearInterval(timerInterval);
-          cancelBookingAndRedirect();
-        }
-      }, 1000);
-    }
+    const countdownInterval = setInterval(() => {
+      const mins = Math.floor(timeLeft / 60);
+      const secs = timeLeft % 60;
+      countdownText.textContent = `⏳ Time left to complete payment: ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+      if (--timeLeft < 0) {
+        clearInterval(countdownInterval);
+        countdownText.textContent = "⛔ Time expired. Booking will be cancelled.";
+        cancelBookingAndRedirect();
+      }
+    }, 1000);
 
     function cancelBookingAndRedirect() {
+      if (!bookingId) return;
       fetch("/.netlify/functions/cancel-booking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId })
-      }).then(() => {
-        alert("Time expired. Your booking has been cancelled.");
+      }).finally(() => {
         localStorage.removeItem("booking_id");
+        alert("Booking expired due to timeout.");
         window.location.href = "index.html";
       });
     }
 
-    // Handle Form Upload
-    document.getElementById("uploadForm").addEventListener("submit", function (e) {
+    // Upload handler
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const fileInput = document.getElementById("screenshot");
-      const file = fileInput.files[0];
-      if (!file) return;
+      const status = document.getElementById("statusMsg");
+      status.textContent = "Uploading...";
 
-      const formData = new FormData();
-      formData.append("screenshot", file);
-      formData.append("bookingId", bookingId);
+      const formData = new FormData(document.getElementById("uploadForm"));
 
-      fetch("/.netlify/functions/upload-screenshot", {
+      const res = await fetch("/.netlify/functions/upload-screenshot", {
         method: "POST",
         body: formData
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "success") {
-          document.getElementById("uploadStatus").style.display = "block";
-          clearInterval(timerInterval);
-          localStorage.removeItem("booking_id");
-        } else {
-          alert("Upload failed. Please try again.");
-        }
-      })
-      .catch(() => {
-        alert("Upload error. Please try again.");
       });
+
+      const data = await res.json();
+      if (data.status === "success") {
+        status.textContent = "✅ Upload successful! Thank you for booking with Tripz.";
+        clearInterval(countdownInterval);
+        localStorage.removeItem("booking_id");
+      } else {
+        status.textContent = "❌ Upload failed. Please try again.";
+      }
     });
 
-    // Trigger cancel booking if user leaves
-    window.addEventListener("beforeunload", function (e) {
-      if (localStorage.getItem("booking_id")) {
+    // Optional: Cancel on tab close
+    window.addEventListener("beforeunload", function () {
+      if (bookingId) {
         navigator.sendBeacon(
           "/.netlify/functions/cancel-booking",
           JSON.stringify({ bookingId })
         );
       }
     });
-
-    startCountdown(600); // 10 minutes
   </script>
 </body>
 </html>
