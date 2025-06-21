@@ -278,7 +278,17 @@ function confirmBooking() {
         ;
       });
     }
-
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  } else if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+  updateCalendar();
+}
     updateCalendar();
 </script>
 </body>
