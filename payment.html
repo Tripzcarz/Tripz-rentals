@@ -48,17 +48,41 @@
   </footer>
 
   <script>
-    function generateBookingID() {
-      const id = 'TRIPZ' + Math.floor(Math.random() * 100000);
-      localStorage.setItem("booking_id", id);
-      document.getElementById("bookingId").textContent = id;
-    }
+  function generateBookingID() {
+    const id = 'TRIPZ' + Math.floor(Math.random() * 100000);
+    localStorage.setItem("booking_id", id);
+    document.getElementById("bookingId").textContent = id;
+  }
 
-    function redirectToUpload() {
-      window.location.href = "upload-screenshot.html";
-    }
+  function redirectToUpload() {
+    window.location.href = "upload-screenshot.html";
+  }
 
-    generateBookingID();
-  </script>
+  function startCountdown(duration) {
+    let timer = duration, minutes, seconds;
+    const countdownDisplay = document.createElement('p');
+    countdownDisplay.style.marginTop = '15px';
+    countdownDisplay.innerHTML = `<strong class="highlight">Time left to complete payment: <span id="timerText"></span></strong>`;
+    document.querySelector('.container').appendChild(countdownDisplay);
+
+    const interval = setInterval(() => {
+      minutes = Math.floor(timer / 60);
+      seconds = timer % 60;
+
+      document.getElementById("timerText").textContent =
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+      if (--timer < 0) {
+        clearInterval(interval);
+        alert("Time expired! Your booking has been cancelled.");
+        localStorage.removeItem("booking_id");
+        window.location.href = "index.html"; // redirect or show cancellation
+      }
+    }, 1000);
+  }
+
+  generateBookingID();
+  startCountdown(600); // 10 minutes
+</script>
 </body>
 </html>
