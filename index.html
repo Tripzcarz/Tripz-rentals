@@ -83,7 +83,7 @@
     </div>
   </div>
 <script>
-  let currentMonth = new Date().getMonth();
+let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let selectedStart = null;
 let selectedEnd = null;
@@ -92,6 +92,27 @@ let tempLockedDates = new Set();
 let bookingId = '';
 let formCache = {};
 let estimatedTotal = 0;
+
+// Utility: Convert input to IST Date object
+function toISTDate(dateStr) {
+  const local = new Date(dateStr);
+  const utc = local.getTime() + local.getTimezoneOffset() * 60000;
+  const istOffset = 5.5 * 60 * 60000;
+  return new Date(utc + istOffset);
+}
+
+// Format to yyyy-mm-dd
+function formatDateToYMD(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+document.getElementById('calendar').addEventListener('change', function () {
+  const istDate = toISTDate(this.value);
+  document.getElementById('selected-date').value = formatDateToYMD(istDate);
+});
 
 function updateCalendar() {
   const calendar = document.getElementById("calendar");
@@ -107,14 +128,14 @@ function updateCalendar() {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(currentYear, currentMonth, d);
-    const iso = date.toISOString().split("T")[0];
+    const iso = formatDateToYMD(date);
     const cell = document.createElement("div");
     cell.className = "day";
     cell.textContent = d;
     cell.dataset.date = iso;
 
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
     if (date < today) {
       cell.classList.add("past-date");
     } else if (bookedDates.has(iso) || tempLockedDates.has(iso)) {
@@ -129,7 +150,7 @@ function updateCalendar() {
 }
 
 function handleCalendarClick(dateStr, cell) {
-  const clickedDate = new Date(dateStr);
+  const clickedDate = new Date(dateStr + "T00:00:00+05:30");
   clearSelections();
 
   if (!selectedStart || (selectedStart && selectedEnd)) {
@@ -146,10 +167,14 @@ function handleCalendarClick(dateStr, cell) {
 
     highlightRange(selectedStart, selectedEnd);
 
-    // Set form fields (09:00 default)
-    const formatDateTime = d => d.toISOString().split("T")[0] + "T09:00";
-    document.getElementById("pickupInput").value = formatDateTime(selectedStart);
-    document.getElementById("dropoffInput").value = formatDateTime(selectedEnd);
+    // Format for input fields as local datetime but based on IST selection
+    const formatDateTime = d => {
+      const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString();
+      return iso.split(":").slice(0, 2).join(":"); // "yyyy-mm-ddThh:mm"
+    };
+
+    document.getElementById("pickupInput").value = formatDateTime(new Date(selectedStart.setHours(9, 0, 0)));
+    document.getElementById("dropoffInput").value = formatDateTime(new Date(selectedEnd.setHours(9, 0, 0)));
     calculatePrice();
   }
 }
@@ -161,7 +186,7 @@ function clearSelections() {
 function highlightRange(start, end) {
   const temp = new Date(start);
   while (temp <= end) {
-    const iso = temp.toISOString().split("T")[0];
+    const iso = formatDateToYMD(temp);
     const el = document.querySelector(`[data-date='${iso}']`);
     if (el) el.classList.add("range");
     temp.setDate(temp.getDate() + 1);
@@ -184,15 +209,17 @@ function calculatePrice() {
 }
 
 function lockDatesTemporarily(start, end) {
-  for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
-    const iso = d.toISOString().split("T")[0];
+  const d1 = new Date(start);
+  const d2 = new Date(end);
+  for (let d = new Date(d1); d < d2; d.setDate(d.getDate() + 1)) {
+    const iso = formatDateToYMD(d);
     tempLockedDates.add(iso);
   }
   updateCalendar();
 
   setTimeout(() => {
-    for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
-      const iso = d.toISOString().split("T")[0];
+    for (let d = new Date(d1); d < d2; d.setDate(d.getDate() + 1)) {
+      const iso = formatDateToYMD(d);
       tempLockedDates.delete(iso);
     }
     updateCalendar();
