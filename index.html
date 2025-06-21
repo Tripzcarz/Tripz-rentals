@@ -93,15 +93,13 @@ let bookingId = '';
 let formCache = {};
 let estimatedTotal = 0;
 
-// Utility: Convert input to IST Date object
+// Utility: Convert to IST Date object from YYYY-MM-DD string
 function toISTDate(dateStr) {
-  const local = new Date(dateStr);
-  const utc = local.getTime() + local.getTimezoneOffset() * 60000;
+  const utc = new Date(dateStr + 'T00:00:00Z');
   const istOffset = 5.5 * 60 * 60000;
-  return new Date(utc + istOffset);
+  return new Date(utc.getTime() + istOffset);
 }
 
-// Format to yyyy-mm-dd
 function formatDateToYMD(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -109,10 +107,14 @@ function formatDateToYMD(date) {
   return `${year}-${month}-${day}`;
 }
 
-document.getElementById('calendar').addEventListener('change', function () {
-  const istDate = toISTDate(this.value);
-  document.getElementById('selected-date').value = formatDateToYMD(istDate);
-});
+function formatDateTimeIST(date) {
+  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+  const ist = new Date(utc + 19800000);
+  const yyyy = ist.getFullYear();
+  const mm = String(ist.getMonth() + 1).padStart(2, '0');
+  const dd = String(ist.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T09:00`;
+}
 
 function updateCalendar() {
   const calendar = document.getElementById("calendar");
@@ -144,13 +146,12 @@ function updateCalendar() {
       cell.classList.add("available");
       cell.onclick = () => handleCalendarClick(iso, cell);
     }
-
     calendar.appendChild(cell);
   }
 }
 
 function handleCalendarClick(dateStr, cell) {
-  const clickedDate = new Date(dateStr + "T00:00:00+05:30");
+  const clickedDate = toISTDate(dateStr);
   clearSelections();
 
   if (!selectedStart || (selectedStart && selectedEnd)) {
@@ -167,14 +168,8 @@ function handleCalendarClick(dateStr, cell) {
 
     highlightRange(selectedStart, selectedEnd);
 
-    // Format for input fields as local datetime but based on IST selection
-    const formatDateTime = d => {
-      const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString();
-      return iso.split(":").slice(0, 2).join(":"); // "yyyy-mm-ddThh:mm"
-    };
-
-    document.getElementById("pickupInput").value = formatDateTime(new Date(selectedStart.setHours(9, 0, 0)));
-    document.getElementById("dropoffInput").value = formatDateTime(new Date(selectedEnd.setHours(9, 0, 0)));
+    document.getElementById("pickupInput").value = formatDateTimeIST(selectedStart);
+    document.getElementById("dropoffInput").value = formatDateTimeIST(selectedEnd);
     calculatePrice();
   }
 }
@@ -223,7 +218,7 @@ function lockDatesTemporarily(start, end) {
       tempLockedDates.delete(iso);
     }
     updateCalendar();
-  }, 10 * 60 * 1000); // unlock after 10 minutes
+  }, 10 * 60 * 1000);
 }
 
 function confirmBooking() {
@@ -285,6 +280,18 @@ function confirmBooking() {
       </div>
     `;
   });
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  } else if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+  updateCalendar();
 }
 
 updateCalendar();
