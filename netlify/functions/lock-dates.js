@@ -1,4 +1,4 @@
-import { sql } from "@vercel/postgres"; // or your preferred library
+import { neon } from '@neondatabase/serverless';
 
 export default async (req, res) => {
   const { bookingId, dates } = JSON.parse(req.body);
