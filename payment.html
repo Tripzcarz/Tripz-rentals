@@ -58,6 +58,23 @@
     window.location.href = "upload-screenshot.html";
   }
 
+  function cancelBookingAndRedirect() {
+    const bookingId = localStorage.getItem("booking_id");
+    if (!bookingId) return;
+
+    fetch("/.netlify/functions/cancel-booking", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId })
+    }).then(() => {
+      localStorage.removeItem("booking_id");
+      alert("Booking expired due to timeout.");
+      window.location.href = "index.html";
+    }).catch(() => {
+      alert("Failed to cancel booking. Please refresh.");
+    });
+  }
+
   function startCountdown(duration) {
     let timer = duration, minutes, seconds;
     const countdownDisplay = document.createElement('p');
@@ -74,15 +91,17 @@
 
       if (--timer < 0) {
         clearInterval(interval);
-        alert("Time expired! Your booking has been cancelled.");
-        localStorage.removeItem("booking_id");
-        window.location.href = "index.html"; // redirect or show cancellation
+        cancelBookingAndRedirect(); // 👈 Call real cancellation
       }
     }, 1000);
   }
 
-  generateBookingID();
-  startCountdown(600); // 10 minutes
+  window.onload = () => {
+    const bookingId = localStorage.getItem("booking_id");
+    if (!bookingId) generateBookingID();
+    else document.getElementById("bookingId").textContent = bookingId;
+    startCountdown(600); // 10 minutes
+  };
 </script>
 </body>
 </html>
