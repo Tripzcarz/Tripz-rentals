@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tripz Self Drive Car Rentals</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
@@ -10,31 +10,12 @@
     nav { background: #34495e; padding: 10px; text-align: center; }
     nav a { color: white; margin: 0 15px; text-decoration: none; font-weight: bold; }
     section { padding: 20px; }
-    .hero { background: #ecf0f1; padding: 40px; text-align: center; }
-    .car-card, .booking-form { border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-bottom: 20px; max-width: 600px; margin-left: auto; margin-right: auto; }
     .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 10px; }
-    .day { padding: 10px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; }
-    .available { background-color: #d4edda; }
-    .unavailable { background-color: #f8d7da; cursor: not-allowed; }
-    .past-date { background-color: #eeeeee; color: #aaa; pointer-events: none; }
-    .selected { background-color: #007bff; color: white; }
-    .range { background-color: #90caf9; }
+    .day { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+    .booked { background-color: #f8d7da; color: #a94442; }
+    .available { background-color: #d4edda; color: #3c763d; }
+    .booking-form { border: 1px solid #ccc; padding: 15px; border-radius: 8px; max-width: 600px; margin: 20px auto; }
     #priceDisplay { font-weight: bold; margin-top: 10px; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-    .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .spinner {
-      border: 4px solid #ccc;
-      border-top: 4px solid #007bff;
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-    }
   </style>
 </head>
 <body>
@@ -44,275 +25,123 @@
   </header>
   <nav>
     <a href="#home">Home</a>
-    <a href="#cars">Available Cars</a>
+    <a href="#calendar">Calendar</a>
     <a href="#booking">Book Now</a>
   </nav>
-  <section class="hero">
-    <h1>Book your Nissan Magnite</h1>
-    <p>₹2700/day or ₹300/hour | CVT Automatic | Petrol</p>
-    <div class="calendar-nav">
-      <button id="prevBtn" onclick="changeMonth(-1)">&lt;</button>
-      <span id="monthLabel"></span>
-      <button id="nextBtn" onclick="changeMonth(1)">&gt;</button>
-    </div>
-    <div id="calendar" class="calendar"></div>
+
+  <section id="calendar">
+    <h2>Booking Calendar (Read-only)</h2>
+    <div class="calendar" id="calendarGrid"></div>
   </section>
+
   <section id="booking" class="booking-form">
     <h2>Booking Form</h2>
     <form id="bookingForm" onsubmit="handleFormSubmit(event)">
-      <label>Name:</label><br />
-      <input type="text" name="name" required /><br /><br />
-      <label>Phone Number:</label><br />
-      <input type="tel" name="phone" pattern="[0-9]{10}" required /><br /><br />
-      <label>Pickup Date & Time:</label><br />
-      <input type="datetime-local" id="pickupInput" name="pickup" required onchange="calculatePrice()" /><br /><br />
-      <label>Drop-off Date & Time:</label><br />
-      <input type="datetime-local" id="dropoffInput" name="dropoff" required onchange="calculatePrice()" /><br /><br />
-      <label>Pickup/Drop Location:</label><br />
-      <input type="text" name="location" /><br /><br />
-      <div id="priceDisplay">Estimated Total: ₹0</div><br />
+      <label>Name:</label><br/>
+      <input type="text" name="name" required /><br/><br/>
+      <label>Phone Number:</label><br/>
+      <input type="tel" name="phone" pattern="[0-9]{10}" required /><br/><br/>
+      <label>Pickup Date & Time:</label><br/>
+      <input type="datetime-local" id="pickupInput" name="pickup" required onchange="calculatePrice()" /><br/><br/>
+      <label>Drop-off Date & Time:</label><br/>
+      <input type="datetime-local" id="dropoffInput" name="dropoff" required onchange="calculatePrice()" /><br/><br/>
+      <label>Pickup/Drop Location:</label><br/>
+      <input type="text" name="location" required /><br/><br/>
+      <div id="priceDisplay">Estimated Total: ₹0</div><br/>
       <button type="submit">Submit Booking</button>
     </form>
   </section>
-  <div class="modal" id="summaryModal">
-    <div class="modal-content">
-      <h3>Confirm Booking</h3>
-      <p id="summaryDetails"></p>
-      <button onclick="confirmBooking()">Confirm</button>
-      <button onclick="closeModal()">Cancel</button>
-    </div>
-  </div>
-<script>
-let currentMonth = new Date().getMonth();
-let currentYear = new Date().getFullYear();
-let selectedStart = null;
-let selectedEnd = null;
-let bookedDates = new Set(["2025-06-22", "2025-06-23"]);
-let tempLockedDates = new Set();
-let bookingId = '';
-let formCache = {};
-let estimatedTotal = 0;
 
-// Utility: Convert to IST Date object from YYYY-MM-DD string
-function toISTDate(dateStr) {
-  const utc = new Date(dateStr + 'T00:00:00Z');
-  const istOffset = 5.5 * 60 * 60000;
-  return new Date(utc.getTime() + istOffset);
-}
+  <script>
+    const bookedDates = new Set(); // Filled from server
+    let estimatedTotal = 0;
 
-function formatDateToYMD(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function formatDateTimeIST(date) {
-  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
-  const ist = new Date(utc + 19800000);
-  const yyyy = ist.getFullYear();
-  const mm = String(ist.getMonth() + 1).padStart(2, '0');
-  const dd = String(ist.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}T09:00`;
-}
-
-function updateCalendar() {
-  const calendar = document.getElementById("calendar");
-  calendar.innerHTML = "";
-  const monthLabel = document.getElementById("monthLabel");
-  const firstDay = new Date(currentYear, currentMonth, 1);
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  monthLabel.textContent = firstDay.toLocaleString("default", { month: "long", year: "numeric" });
-
-  for (let i = 0; i < firstDay.getDay(); i++) {
-    calendar.appendChild(document.createElement("div"));
-  }
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(currentYear, currentMonth, d);
-    const iso = formatDateToYMD(date);
-    const cell = document.createElement("div");
-    cell.className = "day";
-    cell.textContent = d;
-    cell.dataset.date = iso;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (date < today) {
-      cell.classList.add("past-date");
-    } else if (bookedDates.has(iso) || tempLockedDates.has(iso)) {
-      cell.classList.add("unavailable");
-    } else {
-      cell.classList.add("available");
-      cell.onclick = () => handleCalendarClick(iso, cell);
-    }
-    calendar.appendChild(cell);
-  }
-}
-
-function closeModal() {
-  document.getElementById("summaryModal").style.display = "none";
-}
-
-function handleFormSubmit(event) {
-  event.preventDefault(); // prevent page refresh
-  const form = event.target;
-  formCache = {
-    name: form.name.value,
-    phone: form.phone.value,
-    pickup: form.pickup.value,
-    dropoff: form.dropoff.value,
-    location: form.location.value
-  };
-  bookingId = "TRIPZ" + Math.floor(Math.random() * 1000000);
-  const summaryText = `
-    Name: ${formCache.name}<br>
-    Phone: ${formCache.phone}<br>
-    Pickup: ${formCache.pickup}<br>
-    Drop-off: ${formCache.dropoff}<br>
-    Location: ${formCache.location}<br>
-    Estimated Total: ₹${estimatedTotal}
-  `;
-  document.getElementById("summaryDetails").innerHTML = summaryText;
-  document.getElementById("summaryModal").style.display = "flex";
-}
-
-function handleCalendarClick(dateStr, cell) {
-  const clickedDate = toISTDate(dateStr);
-  clearSelections();
-
-  if (!selectedStart || (selectedStart && selectedEnd)) {
-    selectedStart = clickedDate;
-    selectedEnd = null;
-    cell.classList.add("selected");
-  } else {
-    if (clickedDate < selectedStart) {
-      selectedEnd = selectedStart;
-      selectedStart = clickedDate;
-    } else {
-      selectedEnd = clickedDate;
+    function formatDateToYMD(date) {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
     }
 
-    highlightRange(selectedStart, selectedEnd);
+    function updateCalendar() {
+      const calendar = document.getElementById("calendarGrid");
+      calendar.innerHTML = '';
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    document.getElementById("pickupInput").value = formatDateTimeIST(selectedStart);
-    document.getElementById("dropoffInput").value = formatDateTimeIST(selectedEnd);
-    calculatePrice();
-  }
-}
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const dateStr = formatDateToYMD(date);
+        const cell = document.createElement("div");
+        cell.className = "day";
+        cell.textContent = day;
+        cell.classList.add(bookedDates.has(dateStr) ? "booked" : "available");
+        calendar.appendChild(cell);
+      }
+    }
 
-function clearSelections() {
-  document.querySelectorAll(".day").forEach(d => d.classList.remove("selected", "range"));
-}
+    function fetchBookedDates() {
+      fetch("/.netlify/functions/get-booked-dates")
+        .then(res => res.json())
+        .then(data => {
+          (data.bookedDates || []).forEach(d => bookedDates.add(d));
+          updateCalendar();
+        });
+    }
 
-function highlightRange(start, end) {
-  const temp = new Date(start);
-  while (temp <= end) {
-    const iso = formatDateToYMD(temp);
-    const el = document.querySelector(`[data-date='${iso}']`);
-    if (el) el.classList.add("range");
-    temp.setDate(temp.getDate() + 1);
-  }
-}
+    function calculatePrice() {
+      const pickup = new Date(document.getElementById("pickupInput").value);
+      const dropoff = new Date(document.getElementById("dropoffInput").value);
+      if (pickup && dropoff && dropoff > pickup) {
+        const hourlyRate = 300;
+        const dailyRate = 2700;
+        const diff = (dropoff - pickup) / (1000 * 60 * 60);
+        const fullDays = Math.floor(diff / 24);
+        const hours = diff % 24;
+        estimatedTotal = fullDays * dailyRate;
+        estimatedTotal += hours > 6 ? dailyRate : Math.ceil(hours) * hourlyRate;
+        document.getElementById("priceDisplay").textContent = `Estimated Total: ₹${estimatedTotal}`;
+      }
+    }
 
-function calculatePrice() {
-  const pickup = new Date(document.getElementById("pickupInput").value);
-  const dropoff = new Date(document.getElementById("dropoffInput").value);
-  if (pickup && dropoff && dropoff > pickup) {
-    const hourlyRate = 300;
-    const dailyRate = 2700;
-    const diff = (dropoff - pickup) / (1000 * 60 * 60);
-    const fullDays = Math.floor(diff / 24);
-    const hours = diff % 24;
-    estimatedTotal = fullDays * dailyRate;
-    estimatedTotal += hours > 6 ? dailyRate : Math.ceil(hours) * hourlyRate;
-    document.getElementById("priceDisplay").textContent = `Estimated Total: ₹${estimatedTotal}`;
-  }
-}
-
-function changeMonth(delta) {
-  currentMonth += delta;
-  if (currentMonth < 0) {
-    currentMonth = 11;
-    currentYear--;
-  } else if (currentMonth > 11) {
-    currentMonth = 0;
-    currentYear++;
-  }
-  updateCalendar();
-}
-function confirmBooking() {
-  const modal = document.getElementById("summaryModal");
-  modal.innerHTML = `
-    <div class="modal-content">
-      <h3>Processing Booking...</h3>
-      <p>Please wait while we process your booking.</p>
-      <div class="spinner"></div>
-    </div>
-  `;
-  modal.style.display = "flex";
-
-  // Collect all selected dates
-  const selectedDates = [];
-  const d1 = new Date(formCache.pickup);
-  const d2 = new Date(formCache.dropoff);
-  for (let d = new Date(d1); d < d2; d.setDate(d.getDate() + 1)) {
-    selectedDates.push(formatDateToYMD(d));
-  }
-
-  // 💾 Save bookingId in localStorage
-  localStorage.setItem("booking_id", bookingId);
-
-  // Step 1: Lock selected dates temporarily
-  fetch("/.netlify/functions/lock-dates", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bookingId, dates: selectedDates })
-  })
-  .then(() => {
-    // Step 2: Save booking
-    return fetch("/.netlify/functions/submit-booking", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    function handleFormSubmit(event) {
+      event.preventDefault();
+      const form = event.target;
+      const bookingId = "TRIPZ" + Math.floor(Math.random() * 1000000);
+      const data = {
         bookingId,
-        name: formCache.name,
-        phone: formCache.phone,
-        pickup: formCache.pickup,
-        dropoff: formCache.dropoff,
-        location: formCache.location,
+        name: form.name.value,
+        phone: form.phone.value,
+        pickup: form.pickup.value,
+        dropoff: form.dropoff.value,
+        location: form.location.value,
         total: estimatedTotal,
         timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+      };
+      localStorage.setItem("booking_id", bookingId);
+
+      fetch("/.netlify/functions/submit-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
       })
-    });
-  })
-  .then(res => res.json())
-.then(data => {
-  if (data.status === "success") {
-    // Immediately redirect to payment page with booking ID
-    window.location.href = `payment.html?bookingId=${bookingId}`;
-  } else {
-    modal.innerHTML = `
-      <div class="modal-content">
-        <h3>Booking Failed</h3>
-        <p>There was a problem saving your booking. Please try again.</p>
-        <button onclick="closeModal()">Close</button>
-      </div>
-    `;
-  }
-})
-  .catch(err => {
-    console.error("Booking Error:", err);
-    modal.innerHTML = `
-      <div class="modal-content">
-        <h3>Error</h3>
-        <p>Something went wrong. Please try again later.</p>
-        <button onclick="closeModal()">Close</button>
-      </div>
-    `;
-  });
-}  
-    updateCalendar();
-</script>
+      .then(res => res.json())
+      .then(resp => {
+        if (resp.status === "success") {
+          window.location.href = "payment.html";
+        } else {
+          alert("Booking failed. Please try again.");
+        }
+      })
+      .catch(err => {
+        console.error("Error:", err);
+        alert("Something went wrong. Please try again.");
+      });
+    }
+
+    fetchBookedDates();
+  </script>
 </body>
 </html>
