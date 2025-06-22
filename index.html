@@ -5,17 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tripz Self Drive Car Rentals</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4; }
     header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
     nav { background: #34495e; padding: 10px; text-align: center; }
     nav a { color: white; margin: 0 15px; text-decoration: none; font-weight: bold; }
     section { padding: 20px; }
-    .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 10px; }
-    .day { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
-    .booked { background-color: #f8d7da; color: #a94442; }
-    .available { background-color: #d4edda; color: #3c763d; }
-    .booking-form { border: 1px solid #ccc; padding: 15px; border-radius: 8px; max-width: 600px; margin: 20px auto; }
+    .calendar-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; }
+    .calendar-month { max-width: 300px; background: white; border-radius: 8px; padding: 10px; }
+    .calendar-title { text-align: center; font-weight: bold; margin-bottom: 10px; }
+    .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+    .day { padding: 8px; border: 1px solid #ccc; border-radius: 5px; background: #fff; }
+    .unavailable { background-color: #f8d7da; color: #721c24; }
+    .past-date { background-color: #eee; color: #999; }
+    .booking-form { background: white; padding: 20px; max-width: 600px; margin: 30px auto; border-radius: 8px; }
     #priceDisplay { font-weight: bold; margin-top: 10px; }
+    footer { text-align: center; padding: 20px; color: gray; font-size: 14px; }
+    .note { font-size: 13px; color: #555; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -24,127 +29,150 @@
     <p>Explore Tirupati with Freedom</p>
   </header>
   <nav>
-    <a href="#home">Home</a>
     <a href="#calendar">Calendar</a>
     <a href="#booking">Book Now</a>
   </nav>
 
   <section id="calendar">
-    <h2>Booking Calendar (Read-only)</h2>
-    <div class="calendar" id="calendarGrid"></div>
+    <h2>Booked Dates Overview</h2>
+    <div class="calendar-container" id="calendarContainer"></div>
   </section>
 
   <section id="booking" class="booking-form">
     <h2>Booking Form</h2>
     <form id="bookingForm" onsubmit="handleFormSubmit(event)">
-      <label>Name:</label><br/>
-      <input type="text" name="name" required /><br/><br/>
-      <label>Phone Number:</label><br/>
-      <input type="tel" name="phone" pattern="[0-9]{10}" required /><br/><br/>
-      <label>Pickup Date & Time:</label><br/>
-      <input type="datetime-local" id="pickupInput" name="pickup" required onchange="calculatePrice()" /><br/><br/>
-      <label>Drop-off Date & Time:</label><br/>
-      <input type="datetime-local" id="dropoffInput" name="dropoff" required onchange="calculatePrice()" /><br/><br/>
-      <label>Pickup/Drop Location:</label><br/>
-      <input type="text" name="location" required /><br/><br/>
-      <div id="priceDisplay">Estimated Total: ₹0</div><br/>
+      <label>Name:</label><br />
+      <input type="text" name="name" required /><br /><br />
+      <label>Phone Number:</label><br />
+      <input type="tel" name="phone" pattern="[0-9]{10}" required /><br /><br />
+      <label>Pickup Date & Time:</label><br />
+      <input type="datetime-local" id="pickupInput" name="pickup" required onchange="calculatePrice()" /><br /><br />
+      <label>Drop-off Date & Time:</label><br />
+      <input type="datetime-local" id="dropoffInput" name="dropoff" required onchange="calculatePrice()" /><br /><br />
+      <label>Pickup/Drop Location:</label><br />
+      <input type="text" name="location" /><br /><br />
+      <div id="priceDisplay">Estimated Total: ₹0</div>
+      <div class="note">* A refundable security deposit of ₹5,000 is required at pickup.</div><br />
       <button type="submit">Submit Booking</button>
     </form>
   </section>
 
-  <script>
-    const bookedDates = new Set(); // Filled from server
-    let estimatedTotal = 0;
+  <footer>
+    &copy; 2025 Tripz Rentals
+  </footer>
 
-    function formatDateToYMD(date) {
-      const yyyy = date.getFullYear();
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const dd = String(date.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    }
+<script>
+  let bookedDates = new Set();
 
-    function updateCalendar() {
-      const calendar = document.getElementById("calendarGrid");
-      calendar.innerHTML = '';
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = today.getMonth();
+  function formatDateToYMD(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function updateCalendars() {
+    const container = document.getElementById("calendarContainer");
+    container.innerHTML = "";
+
+    const today = new Date();
+    for (let i = 0; i < 3; i++) {
+      const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const year = monthDate.getFullYear();
+      const month = monthDate.getMonth();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        const dateStr = formatDateToYMD(date);
+      const calendarDiv = document.createElement("div");
+      calendarDiv.className = "calendar-month";
+
+      const title = document.createElement("div");
+      title.className = "calendar-title";
+      title.textContent = monthDate.toLocaleString("default", { month: "long", year: "numeric" });
+      calendarDiv.appendChild(title);
+
+      const calendarGrid = document.createElement("div");
+      calendarGrid.className = "calendar";
+
+      const firstDay = new Date(year, month, 1).getDay();
+      for (let j = 0; j < firstDay; j++) {
+        calendarGrid.appendChild(document.createElement("div"));
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const iso = formatDateToYMD(date);
         const cell = document.createElement("div");
         cell.className = "day";
-        cell.textContent = day;
-        cell.classList.add(bookedDates.has(dateStr) ? "booked" : "available");
-        calendar.appendChild(cell);
-      }
-    }
+        cell.textContent = d;
 
-    function fetchBookedDates() {
-      fetch("/.netlify/functions/get-booked-dates")
-        .then(res => res.json())
-        .then(data => {
-          (data.bookedDates || []).forEach(d => bookedDates.add(d));
-          updateCalendar();
-        });
-    }
-
-function calculatePrice() {
-  const pickup = new Date(document.getElementById("pickupInput").value);
-  const dropoff = new Date(document.getElementById("dropoffInput").value);
-  if (pickup && dropoff && dropoff > pickup) {
-    const hourlyRate = 300;
-    const dailyRate = 2700;
-    const diff = (dropoff - pickup) / (1000 * 60 * 60);
-    const fullDays = Math.floor(diff / 24);
-    const hours = diff % 24;
-    estimatedTotal = fullDays * dailyRate;
-    estimatedTotal += hours > 6 ? dailyRate : Math.ceil(hours) * hourlyRate;
-
-    document.getElementById("priceDisplay").innerHTML =
-      `Estimated Total: ₹${estimatedTotal}<br/>
-      <small><em>Note: A refundable deposit of ₹5000 is required on the day of pickup.</em></small>`;
-  }
-}
-
-  function handleFormSubmit(event) {
-      event.preventDefault();
-      const form = event.target;
-      const bookingId = "TRIPZ" + Math.floor(Math.random() * 1000000);
-      const data = {
-        bookingId,
-        name: form.name.value,
-        phone: form.phone.value,
-        pickup: form.pickup.value,
-        dropoff: form.dropoff.value,
-        location: form.location.value,
-        total: estimatedTotal,
-        timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-      };
-      localStorage.setItem("booking_id", bookingId);
-
-      fetch("/.netlify/functions/submit-booking", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      })
-      .then(res => res.json())
-      .then(resp => {
-        if (resp.status === "success") {
-          window.location.href = "payment.html";
-        } else {
-          alert("Booking failed. Please try again.");
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        if (date < now) {
+          cell.classList.add("past-date");
+        } else if (bookedDates.has(iso)) {
+          cell.classList.add("unavailable");
         }
-      })
-      .catch(err => {
-        console.error("Error:", err);
-        alert("Something went wrong. Please try again.");
-      });
-    }
 
-    fetchBookedDates();
-  </script>
+        calendarGrid.appendChild(cell);
+      }
+
+      calendarDiv.appendChild(calendarGrid);
+      container.appendChild(calendarDiv);
+    }
+  }
+
+  // Fetch booked dates
+  fetch("/.netlify/functions/get-booked-dates")
+    .then(res => res.json())
+    .then(data => {
+      if (data.bookedDates) {
+        data.bookedDates.forEach(date => bookedDates.add(date));
+        updateCalendars();
+      }
+    });
+
+  function calculatePrice() {
+    const pickup = new Date(document.getElementById("pickupInput").value);
+    const dropoff = new Date(document.getElementById("dropoffInput").value);
+    if (pickup >= dropoff) return;
+
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const days = Math.ceil((dropoff - pickup) / msPerDay);
+    const price = days * 2700;
+    document.getElementById("priceDisplay").textContent = `Estimated Total: ₹${price}`;
+  }
+
+  function handleFormSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const payload = {
+      bookingId: "TRIPZ" + Math.floor(Math.random() * 100000),
+      name: formData.get("name"),
+      phone: formData.get("phone"),
+      pickup: formData.get("pickup"),
+      dropoff: formData.get("dropoff"),
+      location: formData.get("location"),
+      total: document.getElementById("priceDisplay").textContent.replace(/[^\d]/g, ''),
+      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+    };
+
+    localStorage.setItem("booking_id", payload.bookingId);
+
+    fetch("/.netlify/functions/submit-booking", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "success") {
+        window.location.href = "payment.html";
+      } else {
+        alert("Failed to save booking. Please try again.");
+      }
+    });
+  }
+</script>
 </body>
 </html>
