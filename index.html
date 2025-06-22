@@ -91,22 +91,25 @@
         });
     }
 
-    function calculatePrice() {
-      const pickup = new Date(document.getElementById("pickupInput").value);
-      const dropoff = new Date(document.getElementById("dropoffInput").value);
-      if (pickup && dropoff && dropoff > pickup) {
-        const hourlyRate = 300;
-        const dailyRate = 2700;
-        const diff = (dropoff - pickup) / (1000 * 60 * 60);
-        const fullDays = Math.floor(diff / 24);
-        const hours = diff % 24;
-        estimatedTotal = fullDays * dailyRate;
-        estimatedTotal += hours > 6 ? dailyRate : Math.ceil(hours) * hourlyRate;
-        document.getElementById("priceDisplay").textContent = `Estimated Total: ₹${estimatedTotal}`;
-      }
-    }
+function calculatePrice() {
+  const pickup = new Date(document.getElementById("pickupInput").value);
+  const dropoff = new Date(document.getElementById("dropoffInput").value);
+  if (pickup && dropoff && dropoff > pickup) {
+    const hourlyRate = 300;
+    const dailyRate = 2700;
+    const diff = (dropoff - pickup) / (1000 * 60 * 60);
+    const fullDays = Math.floor(diff / 24);
+    const hours = diff % 24;
+    estimatedTotal = fullDays * dailyRate;
+    estimatedTotal += hours > 6 ? dailyRate : Math.ceil(hours) * hourlyRate;
 
-    function handleFormSubmit(event) {
+    document.getElementById("priceDisplay").innerHTML =
+      `Estimated Total: ₹${estimatedTotal}<br/>
+      <small><em>Note: A refundable deposit of ₹5000 is required on the day of pickup.</em></small>`;
+  }
+}
+
+  function handleFormSubmit(event) {
       event.preventDefault();
       const form = event.target;
       const bookingId = "TRIPZ" + Math.floor(Math.random() * 1000000);
