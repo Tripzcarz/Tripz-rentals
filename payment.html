@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tripz Payment</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
@@ -16,6 +16,7 @@
     button { margin-top: 20px; padding: 10px 20px; font-weight: bold; background: #25D366; color: white; border: none; border-radius: 5px; cursor: pointer; }
     footer { text-align: center; padding: 20px; font-size: 14px; color: gray; }
     img.qr { display: block; margin: 10px auto; border: 1px solid #ccc; border-radius: 8px; }
+    #timerText { margin-top: 15px; font-weight: bold; color: #c0392b; }
   </style>
 </head>
 <body>
@@ -25,7 +26,7 @@
 
   <div class="container">
     <h2>Complete Your Booking</h2>
-    <p>Your Booking ID: <span class="highlight" id="bookingId"></span></p>
+    <p>Your Booking ID: <span class="highlight" id="bookingId">Loading...</span></p>
 
     <div class="info-box">
       <p>Scan the QR code or use either UPI ID below to pay the booking amount (includes refundable deposit).</p>
@@ -38,6 +39,7 @@
       <img class="qr" src="tripz_qr.jpg" alt="UPI QR Code" width="200" />
       <div class="copy">Use either UPI ID above. Mention Booking ID in payment note.</div>
       <button onclick="sendWhatsApp()">Send Screenshot via WhatsApp</button>
+      <p id="timerText">⏳ Time left to complete payment: 10:00</p>
     </div>
 
     <p><strong>Note:</strong> Your booking will only be confirmed after payment screenshot is received.</p>
@@ -48,20 +50,50 @@
   </footer>
 
   <script>
-    function generateBookingID() {
-      const id = localStorage.getItem("booking_id") || 'TRIPZ' + Math.floor(Math.random() * 100000);
-      localStorage.setItem("booking_id", id);
-      document.getElementById("bookingId").textContent = id;
-    }
+    const bookingId = localStorage.getItem("booking_id") || 'TRIPZ' + Math.floor(Math.random() * 100000);
+    localStorage.setItem("booking_id", bookingId);
+    document.getElementById("bookingId").textContent = bookingId;
 
     function sendWhatsApp() {
-      const bookingId = localStorage.getItem("booking_id") || '';
       const message = `Hello, I have paid for Tripz booking. My Booking ID is ${bookingId}. Screenshot attached.`;
-      const encodedMsg = encodeURIComponent(message);
-      window.location.href = `https://wa.me/918142945805?text=${encodedMsg}`;
+      window.location.href = `https://wa.me/918142945805?text=${encodeURIComponent(message)}`;
     }
 
-    generateBookingID();
+    function startCountdown(duration) {
+      let timer = duration;
+      const display = document.getElementById("timerText");
+
+      const interval = setInterval(() => {
+        const minutes = Math.floor(timer / 60);
+        const seconds = timer % 60;
+        display.textContent = `⏳ Time left to complete payment: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+        if (--timer < 0) {
+          clearInterval(interval);
+          cancelBookingAndRedirect();
+        }
+      }, 1000);
+    }
+
+    function cancelBookingAndRedirect() {
+      fetch("/.netlify/functions/cancel-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId })
+      }).then(() => {
+        alert("❌ Booking cancelled due to timeout.");
+        localStorage.removeItem("booking_id");
+        window.location.href = "index.html";
+      });
+    }
+
+    window.addEventListener("beforeunload", () => {
+      if (bookingId) {
+        navigator.sendBeacon("/.netlify/functions/cancel-booking", JSON.stringify({ bookingId }));
+      }
+    });
+
+    startCountdown(600); // 10 minutes
   </script>
 </body>
 </html>
