@@ -1,100 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Panel - Tripz</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Tripz Rentals</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 30px; }
-    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    h2 { text-align: center; color: #2c3e50; }
-    button { padding: 10px 20px; margin: 10px 5px; background: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    button:hover { background: #2c3e50; }
-    #output { margin-top: 20px; white-space: pre-wrap; background: #ecf0f1; padding: 15px; border-radius: 5px; height: 300px; overflow-y: auto; }
-    .hidden { display: none; }
-    #pinInput { width: 100%; padding: 10px; margin-top: 20px; }
+    body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
+    header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
+    .container { padding: 20px; max-width: 1000px; margin: auto; }
+    .section { margin-top: 30px; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 0 10px #ccc; }
+    h2 { color: #2c3e50; margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+    th { background: #34495e; color: white; }
+    .delete-btn { background: red; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+    .calendar-container { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+    .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: 300px; }
+    .day { padding: 8px; background: #eee; border-radius: 4px; cursor: pointer; }
+    .booked { background: #f8d7da; }
+    .blocked { background: #fef3cd; }
+    .selected { border: 2px solid #2c3e50; background: #d1ecf1; }
+    .actions { margin-top: 10px; }
+    button { padding: 10px 15px; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #loginSection { text-align: center; margin-top: 100px; }
+    input[type="password"] { padding: 10px; border-radius: 4px; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Admin Panel - Tripz</h2>
+  <header><h1>Tripz Rentals Admin Panel</h1></header>
 
-    <div id="loginSection">
-      <p>Enter Admin PIN to continue:</p>
-      <input type="password" id="pinInput" placeholder="Enter PIN" />
-      <button onclick="checkPin()">Login</button>
+  <div id="loginSection">
+    <h2>Enter Admin PIN</h2>
+    <input type="password" id="pinInput" placeholder="Enter PIN" />
+    <br><br>
+    <button onclick="checkPin()">Login</button>
+  </div>
+
+  <div id="adminPanel" class="container" style="display: none">
+
+    <div class="section">
+      <h2>All Bookings</h2>
+      <table id="bookingsTable">
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Phone</th><th>Pickup</th><th>Drop-off</th><th>Location</th><th>Total</th><th>Delete</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
 
-    <div id="adminSection" class="hidden">
-      <button onclick="getBookings()">View All Bookings</button>
-      <button onclick="getBookedDates()">View Booked Dates</button>
-      <button onclick="blockDate()">Block Date</button>
-      <button onclick="deleteBooking()">Delete Booking</button>
-      <div id="output"></div>
+    <div class="section">
+      <h2>Booked & Blocked Dates</h2>
+      <div class="calendar-container" id="calendarView"></div>
     </div>
+
+    <div class="section">
+      <h2>Block Date Range</h2>
+      <label>From: <input type="date" id="blockStart" /></label>
+      <label>To: <input type="date" id="blockEnd" /></label>
+      <div class="actions">
+        <button onclick="blockDateRange()">Block Dates</button>
+      </div>
+    </div>
+
   </div>
 
   <script>
-    const ADMIN_PIN = "1234"; // Change this PIN to whatever you prefer
+    const ADMIN_PIN = "1234";
+    const bookedDates = new Set();
+    const blockedDates = new Set();
 
     function checkPin() {
-      const entered = document.getElementById("pinInput").value;
-      if (entered === ADMIN_PIN) {
-        document.getElementById("loginSection").classList.add("hidden");
-        document.getElementById("adminSection").classList.remove("hidden");
+      const pin = document.getElementById("pinInput").value;
+      if (pin === ADMIN_PIN) {
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("adminPanel").style.display = "block";
+        loadBookings();
+        loadCalendar();
       } else {
-        alert("Incorrect PIN");
+        alert("Invalid PIN");
       }
     }
 
-    function getBookings() {
+    function loadBookings() {
       fetch("/.netlify/functions/get-all-bookings")
         .then(res => res.json())
         .then(data => {
-          document.getElementById("output").textContent = JSON.stringify(data, null, 2);
-        })
-        .catch(() => alert("Failed to fetch bookings."));
+          const tbody = document.querySelector("#bookingsTable tbody");
+          tbody.innerHTML = "";
+          data.bookings.forEach(b => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${b.bookingid}</td>
+              <td>${b.name}</td>
+              <td>${b.phone}</td>
+              <td>${b.pickup}</td>
+              <td>${b.dropoff}</td>
+              <td>${b.location}</td>
+              <td>₹${b.total}</td>
+              <td><button class="delete-btn" onclick="deleteBooking('${b.bookingid}')">Delete</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        });
     }
 
-    function getBookedDates() {
+    function deleteBooking(id) {
+      if (confirm(`Are you sure you want to delete booking ${id}?`)) {
+        fetch("/.netlify/functions/delete-booking", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingId: id })
+        }).then(() => loadBookings());
+      }
+    }
+
+    function loadCalendar() {
       fetch("/.netlify/functions/get-booked-dates")
         .then(res => res.json())
         .then(data => {
-          document.getElementById("output").textContent = JSON.stringify(data, null, 2);
-        })
-        .catch(() => alert("Failed to fetch dates."));
+          bookedDates.clear();
+          data.bookedDates.forEach(d => bookedDates.add(d));
+          renderCalendar();
+        });
     }
 
-    function blockDate() {
-      const date = prompt("Enter date to block (YYYY-MM-DD):");
-      if (!date) return;
+    function renderCalendar() {
+      const container = document.getElementById("calendarView");
+      container.innerHTML = "";
+      const today = new Date();
+      for (let i = 0; i < 3; i++) {
+        const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        const year = monthDate.getFullYear();
+        const month = monthDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const monthDiv = document.createElement("div");
+        const title = document.createElement("h4");
+        title.textContent = monthDate.toLocaleString("default", { month: "long", year: "numeric" });
+        monthDiv.appendChild(title);
+
+        const grid = document.createElement("div");
+        grid.className = "calendar";
+
+        for (let d = 1; d <= daysInMonth; d++) {
+          const date = new Date(year, month, d);
+          const iso = date.toISOString().split("T")[0];
+          const cell = document.createElement("div");
+          cell.className = "day";
+          cell.textContent = d;
+
+          if (bookedDates.has(iso)) cell.classList.add("booked");
+          if (blockedDates.has(iso)) cell.classList.add("blocked");
+
+          grid.appendChild(cell);
+        }
+
+        monthDiv.appendChild(grid);
+        container.appendChild(monthDiv);
+      }
+    }
+
+    function blockDateRange() {
+      const start = document.getElementById("blockStart").value;
+      const end = document.getElementById("blockEnd").value;
+      if (!start || !end) return alert("Please select both start and end dates");
+
       fetch("/.netlify/functions/block-date", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date })
-      })
-      .then(res => res.json())
-      .then(data => {
-        alert("Date blocked successfully.");
-        document.getElementById("output").textContent = JSON.stringify(data, null, 2);
-      })
-      .catch(() => alert("Failed to block date."));
-    }
-
-    function deleteBooking() {
-      const bookingId = prompt("Enter Booking ID to delete:");
-      if (!bookingId) return;
-      fetch("/.netlify/functions/delete-booking", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId })
-      })
-      .then(res => res.json())
-      .then(data => {
-        alert("Booking deleted successfully.");
-        document.getElementById("output").textContent = JSON.stringify(data, null, 2);
-      })
-      .catch(() => alert("Failed to delete booking."));
+        body: JSON.stringify({ start, end })
+      }).then(() => {
+        alert("Dates blocked successfully");
+        loadCalendar();
+      });
     }
   </script>
 </body>
