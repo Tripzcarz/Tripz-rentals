@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - Tripz</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4; }
+    header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
+    .container { max-width: 900px; margin: 30px auto; background: white; padding: 20px; border-radius: 8px; }
+    h2 { margin-top: 0; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background: #f0f0f0; }
+    button { padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    input[type="date"] { padding: 6px; }
+    .note { font-size: 13px; color: #777; }
+  </style>
+</head>
+<body>
+  <script>
+    const pin = prompt("Enter Admin PIN:");
+    if (pin !== "4321") {
+      alert("Access denied.");
+      window.location.href = "/";
+    }
+  </script>
+
+  <header>
+    <h1>Admin Dashboard - Tripz Rentals</h1>
+  </header>
+
+  <div class="container">
+    <h2>Confirmed Bookings</h2>
+    <table id="bookingTable">
+      <thead>
+        <tr><th>Booking ID</th><th>Name</th><th>Phone</th><th>Pickup</th><th>Dropoff</th><th>Location</th><th>Total</th><th>Action</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Booked Dates</h2>
+    <ul id="bookedDatesList"></ul>
+
+    <h2>Block a Date</h2>
+    <input type="date" id="blockDate" />
+    <button onclick="blockDate()">Block Date</button>
+    <p class="note">Use this to block dates for service or maintenance.</p>
+  </div>
+
+  <script>
+    function fetchBookings() {
+      fetch('/.netlify/functions/get-all-bookings')
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector("#bookingTable tbody");
+          const bookedSet = new Set();
+          tbody.innerHTML = "";
+
+          data.bookings.forEach(b => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${b.bookingid}</td>
+              <td>${b.name}</td>
+              <td>${b.phone}</td>
+              <td>${b.pickup}</td>
+              <td>${b.dropoff}</td>
+              <td>${b.location}</td>
+              <td>${b.total}</td>
+              <td><button onclick="deleteBooking('${b.bookingid}')">Delete</button></td>
+            `;
+            tbody.appendChild(tr);
+
+            const start = new Date(b.pickup);
+            const end = new Date(b.dropoff);
+            for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+              bookedSet.add(d.toISOString().split("T")[0]);
+            }
+          });
+
+          const list = document.getElementById("bookedDatesList");
+          list.innerHTML = "";
+          Array.from(bookedSet).sort().forEach(date => {
+            const li = document.createElement("li");
+            li.textContent = date;
+            list.appendChild(li);
+          });
+        });
+    }
+
+    function deleteBooking(id) {
+      if (!confirm("Delete booking " + id + "?") ) return;
+      fetch("/.netlify/functions/delete-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: id })
+      })
+      .then(() => fetchBookings());
+    }
+
+    function blockDate() {
+      const date = document.getElementById("blockDate").value;
+      if (!date) return alert("Please select a date");
+      fetch("/.netlify/functions/block-date", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date })
+      })
+      .then(() => alert("Date blocked successfully"));
+    }
+
+    fetchBookings();
+  </script>
+</body>
+</html>
