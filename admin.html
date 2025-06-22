@@ -65,7 +65,7 @@
   </div>
 
   <script>
-    const ADMIN_PIN = "1234";
+    const ADMIN_PIN = "171994";
     const bookedDates = new Set();
     const blockedDates = new Set();
 
@@ -125,40 +125,58 @@
     }
 
     function renderCalendar() {
-      const container = document.getElementById("calendarView");
-      container.innerHTML = "";
-      const today = new Date();
-      for (let i = 0; i < 3; i++) {
-        const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
-        const year = monthDate.getFullYear();
-        const month = monthDate.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const container = document.getElementById("calendarView");
+  container.innerHTML = "";
+  const today = new Date();
 
-        const monthDiv = document.createElement("div");
-        const title = document.createElement("h4");
-        title.textContent = monthDate.toLocaleString("default", { month: "long", year: "numeric" });
-        monthDiv.appendChild(title);
+  for (let i = 0; i < 3; i++) {
+    const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        const grid = document.createElement("div");
-        grid.className = "calendar";
+    const monthDiv = document.createElement("div");
+    const title = document.createElement("h4");
+    title.textContent = monthDate.toLocaleString("default", { month: "long", year: "numeric" });
+    monthDiv.appendChild(title);
 
-        for (let d = 1; d <= daysInMonth; d++) {
-          const date = new Date(year, month, d);
-          const iso = date.toISOString().split("T")[0];
-          const cell = document.createElement("div");
-          cell.className = "day";
-          cell.textContent = d;
+    const grid = document.createElement("div");
+    grid.className = "calendar";
 
-          if (bookedDates.has(iso)) cell.classList.add("booked");
-          if (blockedDates.has(iso)) cell.classList.add("blocked");
+    // Add day headers (Sun–Sat)
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+      const headerCell = document.createElement("div");
+      headerCell.textContent = day;
+      headerCell.style.fontWeight = "bold";
+      headerCell.style.background = "#f0f0f0";
+      headerCell.style.textAlign = "center";
+      headerCell.style.padding = "5px";
+      grid.appendChild(headerCell);
+    });
 
-          grid.appendChild(cell);
-        }
-
-        monthDiv.appendChild(grid);
-        container.appendChild(monthDiv);
-      }
+    const firstDay = new Date(year, month, 1).getDay();
+    for (let j = 0; j < firstDay; j++) {
+      grid.appendChild(document.createElement("div")); // Empty cells before 1st
     }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d);
+      const iso = date.toISOString().split("T")[0];
+      const cell = document.createElement("div");
+      cell.className = "day";
+      cell.textContent = d;
+
+      if (bookedDates.has(iso)) cell.classList.add("booked");
+      if (blockedDates.has(iso)) cell.classList.add("blocked");
+
+      grid.appendChild(cell);
+    }
+
+    monthDiv.appendChild(grid);
+    container.appendChild(monthDiv);
+  }
+}
 
     function blockDateRange() {
       const start = document.getElementById("blockStart").value;
