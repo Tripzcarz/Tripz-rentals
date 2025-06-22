@@ -333,6 +333,9 @@ function confirmBooking() {
     selectedDates.push(formatDateToYMD(d));
   }
 
+  // 💾 Save bookingId in localStorage
+  localStorage.setItem("booking_id", bookingId);
+
   // Step 1: Lock selected dates temporarily
   fetch("/.netlify/functions/lock-dates", {
     method: "POST",
@@ -363,7 +366,7 @@ function confirmBooking() {
         <div class="modal-content">
           <h3>Booking Confirmed!</h3>
           <p>Your Booking ID: <strong>${bookingId}</strong></p>
-          <button onclick="window.location.href='payment.html?bookingId=${bookingId}'">Continue to Payment</button>
+          <button onclick="window.location.href='payment.html'">Continue to Payment</button>
         </div>
       `;
     } else {
@@ -386,8 +389,7 @@ function confirmBooking() {
       </div>
     `;
   });
-}
-  
+}  
     updateCalendar();
 </script>
 </body>
