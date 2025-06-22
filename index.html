@@ -230,79 +230,6 @@ function calculatePrice() {
   }
 }
 
-function confirmBooking() {
-  const modal = document.getElementById("summaryModal");
-  modal.innerHTML = `
-    <div class="modal-content">
-      <h3>Processing Booking...</h3>
-      <p>Please wait while we confirm your booking.</p>
-      <div class="spinner"></div>
-    </div>
-  `;
-  modal.style.display = "flex";
-
-  // Collect all selected dates
-  const selectedDates = [];
-  const d1 = new Date(formCache.pickup);
-  const d2 = new Date(formCache.dropoff);
-  for (let d = new Date(d1); d < d2; d.setDate(d.getDate() + 1)) {
-    selectedDates.push(formatDateToYMD(d));
-  }
-
-  // First: Lock dates temporarily server-side
-  fetch("/.netlify/functions/lock-dates", {
-    method: "POST",
-    body: JSON.stringify({ bookingId, dates: selectedDates }),
-    headers: { "Content-Type": "application/json" }
-  })
-  .then(() => {
-    // Second: Save booking
-    return fetch("/.netlify/functions/submit-booking", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bookingId,
-        name: formCache.name,
-        phone: formCache.phone,
-        pickup: formCache.pickup,
-        dropoff: formCache.dropoff,
-        location: formCache.location,
-        total: estimatedTotal,
-        timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-      })
-    });
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === "success") {
-      modal.innerHTML = `
-        <div class="modal-content">
-          <h3>Booking Confirmed!</h3>
-          <p>Your Booking ID: <strong>${bookingId}</strong></p>
-          <button onclick="window.location.href='payment.html?bookingId=${bookingId}'">Continue to Payment</button>
-        </div>
-      `;
-    } else {
-      modal.innerHTML = `
-        <div class="modal-content">
-          <h3>Booking Failed</h3>
-          <p>There was a problem saving your booking. Please try again.</p>
-          <button onclick="closeModal()">Close</button>
-        </div>
-      `;
-    }
-  })
-  .catch(err => {
-    console.error("Booking Error:", err);
-    modal.innerHTML = `
-      <div class="modal-content">
-        <h3>Error</h3>
-        <p>Something went wrong. Please try again later.</p>
-        <button onclick="closeModal()">Close</button>
-      </div>
-    `;
-  });
-}
 function changeMonth(delta) {
   currentMonth += delta;
   if (currentMonth < 0) {
@@ -319,7 +246,7 @@ function confirmBooking() {
   modal.innerHTML = `
     <div class="modal-content">
       <h3>Processing Booking...</h3>
-      <p>Please wait while we confirm your booking.</p>
+      <p>Please wait while we process your booking.</p>
       <div class="spinner"></div>
     </div>
   `;
