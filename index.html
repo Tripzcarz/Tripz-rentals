@@ -121,15 +121,20 @@
     }
   }
 
-  // Fetch booked dates
-  fetch("/.netlify/functions/get-booked-dates")
-    .then(res => res.json())
-    .then(data => {
-      if (data.bookedDates) {
-        data.bookedDates.forEach(date => bookedDates.add(date));
-        updateCalendars();
-      }
-    });
+  // Fetch booked dates (show calendar even if empty)
+fetch("/.netlify/functions/get-booked-dates")
+  .then(res => res.json())
+  .then(data => {
+    if (data.bookedDates && Array.isArray(data.bookedDates)) {
+      data.bookedDates.forEach(date => bookedDates.add(date));
+    }
+    updateCalendars(); // always call to render calendar
+  })
+  .catch(err => {
+    console.error("Error loading booked dates", err);
+    updateCalendars(); // still show empty calendar
+  });
+
 
   function calculatePrice() {
     const pickup = new Date(document.getElementById("pickupInput").value);
