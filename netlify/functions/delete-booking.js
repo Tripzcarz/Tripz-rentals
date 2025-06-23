@@ -1,15 +1,15 @@
+// netlify/functions/delete-booking.js
 import { neon } from '@neondatabase/serverless';
-const sql = neon(process.env.DATABASE_URL);
 
-export default async (req, res) => {
+export default async (req, context) => {
+  const db = neon(process.env.DATABASE_URL);
+  const { bookingId } = await req.json();
+
   try {
-    const { bookingId } = JSON.parse(req.body);
-    if (!bookingId) throw new Error("Missing bookingId");
-
-    await sql`DELETE FROM bookings WHERE booking_id = ${bookingId}`;
-    res.status(200).json({ status: "success", message: "Booking deleted." });
+    await db`DELETE FROM bookings WHERE booking_id = ${bookingId}`;
+    return Response.json({ status: "deleted" });
   } catch (err) {
-    console.error("Delete Error:", err);
-    res.status(500).json({ error: "Failed to delete booking" });
+    console.error("❌ Error deleting booking:", err);
+    return Response.json({ error: "Delete failed", message: err.message }, { status: 500 });
   }
 };
