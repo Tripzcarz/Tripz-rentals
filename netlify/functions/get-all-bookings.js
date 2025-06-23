@@ -1,10 +1,11 @@
-// /.netlify/functions/get-all-bookings.js
 import { neon } from '@neondatabase/serverless';
 const sql = neon(process.env.DATABASE_URL);
 
 export async function handler() {
   try {
     const result = await sql`SELECT * FROM bookings ORDER BY timestamp DESC;`;
+    console.log("✅ Raw result:", result); // 👈 Add this
+
     return {
       statusCode: 200,
       body: JSON.stringify({ bookings: result.rows })
