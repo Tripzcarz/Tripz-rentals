@@ -135,15 +135,24 @@
       }
     }
 
-    function loadCalendar() {
-      fetch("/.netlify/functions/get-booked-dates")
-        .then(res => res.json())
-        .then(data => {
-          bookedDates.clear();
-          data.bookedDates.forEach(d => bookedDates.add(d));
-          renderCalendar();
-        });
-    }
+   function loadCalendar() {
+  bookedDates.clear();
+  blockedDates.clear();
+
+  Promise.all([
+    fetch("/.netlify/functions/get-booked-dates").then(res => res.json()),
+    fetch("/.netlify/functions/get-blocked-dates").then(res => res.json())
+  ])
+  .then(([booked, blocked]) => {
+    booked.bookedDates.forEach(d => bookedDates.add(d));
+    blocked.blockedDates.forEach(d => blockedDates.add(d));
+    renderCalendar();
+  })
+  .catch(err => {
+    console.error("❌ Failed to load calendar data:", err);
+  });
+}
+
 
     function renderCalendar() {
       const container = document.getElementById("calendarView");
