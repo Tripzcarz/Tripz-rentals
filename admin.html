@@ -121,6 +121,8 @@
 
 
    function deleteBooking(id) {
+  console.log("🗑️ Deleting booking:", id);  // ✅ Add this line
+
   if (confirm(`Are you sure you want to delete booking ${id}?`)) {
     fetch("/.netlify/functions/delete-booking", {
       method: "POST",
@@ -131,14 +133,16 @@
       if (!res.ok) throw new Error("Delete failed");
       return res.json();
     })
-    .then(() => loadBookings())
+    .then(() => {
+      console.log("✅ Booking deleted");
+      loadBookings();  // Reload updated table
+    })
     .catch(err => {
-      alert("❌ Failed to delete booking");
-      console.error(err);
+      console.error("❌ Failed to delete booking:", err);
+      alert("Delete failed");
     });
   }
 }
-
 
     function loadCalendar() {
       fetch("/.netlify/functions/get-booked-dates")
