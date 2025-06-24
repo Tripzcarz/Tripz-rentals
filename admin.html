@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Panel - Tripz Rentals</title>
   <style>
     body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
@@ -82,67 +82,58 @@
     }
 
     function loadBookings() {
-  fetch("/.netlify/functions/get-all-bookings")
-    .then(res => {
-      if (!res.ok) throw new Error("Fetch error: " + res.status);
-      return res.json();
-    })
-    .then(data => {
-      console.log("Bookings received:", data);
-      const tbody = document.querySelector("#bookingsTable tbody");
-      tbody.innerHTML = "";
+      console.log("📥 Fetching bookings...");
+      fetch("/.netlify/functions/get-all-bookings")
+        .then(res => res.json())
+        .then(data => {
+          console.log("📄 Bookings received:", data);
+          const tbody = document.querySelector("#bookingsTable tbody");
+          tbody.innerHTML = "";
 
-      if (!data.bookings || data.bookings.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='8'>No bookings found.</td></tr>";
-        return;
+          if (!data.bookings || data.bookings.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='8'>No bookings found.</td></tr>";
+            return;
+          }
+
+          data.bookings.forEach(b => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${b.booking_id}</td>
+              <td>${b.name}</td>
+              <td>${b.phone}</td>
+              <td>${b.pickup}</td>
+              <td>${b.dropoff}</td>
+              <td>${b.location}</td>
+              <td>₹${b.total}</td>
+              <td><button class="delete-btn" onclick="deleteBooking('${b.booking_id}')">Delete</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        });
+    }
+
+    function deleteBooking(id) {
+      console.log("🗑️ Deleting booking:", id);
+      if (confirm(`Are you sure you want to delete booking ${id}?`)) {
+        fetch("/.netlify/functions/delete-booking", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingId: id })
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("Delete failed");
+          return res.json();
+        })
+        .then(() => {
+          console.log("✅ Booking deleted");
+          loadBookings();
+        })
+        .catch(err => {
+          console.error("❌ Failed to delete booking:", err);
+          alert("Delete failed");
+        });
       }
-
-      data.bookings.forEach(b => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${b.booking_id}</td>
-          <td>${b.name}</td>
-          <td>${b.phone}</td>
-          <td>${b.pickup}</td>
-          <td>${b.dropoff}</td>
-          <td>${b.location}</td>
-          <td>₹${b.total}</td>
-          <td><button class="delete-btn" onclick="deleteBooking('${b.bookingid}')">Delete</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
-    })
-    .catch(err => {
-      console.error("❌ Failed to load bookings:", err);
-      const tbody = document.querySelector("#bookingsTable tbody");
-      tbody.innerHTML = "<tr><td colspan='8'>Failed to load bookings.</td></tr>";
-    });
-}
-
-
-   function deleteBooking(id) {
-  console.log("🗑️ Deleting booking:", id);  // ✅ Add this line
-
-  if (confirm(`Are you sure you want to delete booking ${id}?`)) {
-    fetch("/.netlify/functions/delete-booking", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bookingId: id })
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Delete failed");
-      return res.json();
-    })
-    .then(() => {
-      console.log("✅ Booking deleted");
-      loadBookings();  // Reload updated table
-    })
-    .catch(err => {
-      console.error("❌ Failed to delete booking:", err);
-      alert("Delete failed");
-    });
-  }
-}
+    }
 
     function loadCalendar() {
       fetch("/.netlify/functions/get-booked-dates")
@@ -155,58 +146,57 @@
     }
 
     function renderCalendar() {
-  const container = document.getElementById("calendarView");
-  container.innerHTML = "";
-  const today = new Date();
+      const container = document.getElementById("calendarView");
+      container.innerHTML = "";
+      const today = new Date();
 
-  for (let i = 0; i < 3; i++) {
-    const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
-    const year = monthDate.getFullYear();
-    const month = monthDate.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+      for (let i = 0; i < 3; i++) {
+        const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        const year = monthDate.getFullYear();
+        const month = monthDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    const monthDiv = document.createElement("div");
-    const title = document.createElement("h4");
-    title.textContent = monthDate.toLocaleString("default", { month: "long", year: "numeric" });
-    monthDiv.appendChild(title);
+        const monthDiv = document.createElement("div");
+        const title = document.createElement("h4");
+        title.textContent = monthDate.toLocaleString("default", { month: "long", year: "numeric" });
+        monthDiv.appendChild(title);
 
-    const grid = document.createElement("div");
-    grid.className = "calendar";
+        const grid = document.createElement("div");
+        grid.className = "calendar";
 
-    // Add day headers (Sun–Sat)
-    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    dayHeaders.forEach(day => {
-      const headerCell = document.createElement("div");
-      headerCell.textContent = day;
-      headerCell.style.fontWeight = "bold";
-      headerCell.style.background = "#f0f0f0";
-      headerCell.style.textAlign = "center";
-      headerCell.style.padding = "5px";
-      grid.appendChild(headerCell);
-    });
+        const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        dayHeaders.forEach(day => {
+          const headerCell = document.createElement("div");
+          headerCell.textContent = day;
+          headerCell.style.fontWeight = "bold";
+          headerCell.style.background = "#f0f0f0";
+          headerCell.style.textAlign = "center";
+          headerCell.style.padding = "5px";
+          grid.appendChild(headerCell);
+        });
 
-    const firstDay = new Date(year, month, 1).getDay();
-    for (let j = 0; j < firstDay; j++) {
-      grid.appendChild(document.createElement("div")); // Empty cells before 1st
+        const firstDay = new Date(year, month, 1).getDay();
+        for (let j = 0; j < firstDay; j++) {
+          grid.appendChild(document.createElement("div"));
+        }
+
+        for (let d = 1; d <= daysInMonth; d++) {
+          const date = new Date(year, month, d);
+          const iso = date.toISOString().split("T")[0];
+          const cell = document.createElement("div");
+          cell.className = "day";
+          cell.textContent = d;
+
+          if (bookedDates.has(iso)) cell.classList.add("booked");
+          if (blockedDates.has(iso)) cell.classList.add("blocked");
+
+          grid.appendChild(cell);
+        }
+
+        monthDiv.appendChild(grid);
+        container.appendChild(monthDiv);
+      }
     }
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = new Date(year, month, d);
-      const iso = date.toISOString().split("T")[0];
-      const cell = document.createElement("div");
-      cell.className = "day";
-      cell.textContent = d;
-
-      if (bookedDates.has(iso)) cell.classList.add("booked");
-      if (blockedDates.has(iso)) cell.classList.add("blocked");
-
-      grid.appendChild(cell);
-    }
-
-    monthDiv.appendChild(grid);
-    container.appendChild(monthDiv);
-  }
-}
 
     function blockDateRange() {
       const start = document.getElementById("blockStart").value;
