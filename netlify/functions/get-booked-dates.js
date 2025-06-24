@@ -1,27 +1,27 @@
-import { neon } from "@neondatabase/serverless";
+import { neon } from '@neondatabase/serverless';
+const db = neon(process.env.DATABASE_URL);
 
-const sql = neon(process.env.DATABASE_URL);
-
-export default async (req, context) => {
+export default async () => {
   try {
-    const result = await sql`SELECT pickup, dropoff FROM bookings`;
+    const result = await db`SELECT pickup, dropoff FROM bookings`;
+
     const bookedDates = [];
 
     for (const row of result) {
-      const d1 = new Date(row.pickup);
-      const d2 = new Date(row.dropoff);
-      for (let d = new Date(d1); d <= d2; d.setDate(d.getDate() + 1)) {
-        bookedDates.push(d.toISOString().split('T')[0]);
+      const start = new Date(row.pickup);
+      const end = new Date(row.dropoff);
+      for (
+        let d = new Date(start);
+        d < end;
+        d.setDate(d.getDate() + 1)
+      ) {
+        bookedDates.push(d.toISOString().split("T")[0]);
       }
     }
 
-    return new Response(JSON.stringify({ bookedDates }), {
-      headers: { "Content-Type": "application/json" }
-    });
+    return Response.json({ bookedDates });
   } catch (err) {
-    console.error("Failed to get booked dates", err);
-    return new Response(JSON.stringify({ error: "Failed to load dates" }), {
-      status: 500
-    });
+    console.error("❌ get-booked-dates error:", err);
+    return Response.json({ bookedDates: [] });
   }
 };
