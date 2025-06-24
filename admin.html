@@ -199,19 +199,20 @@
     }
 
     function blockDateRange() {
-      const start = document.getElementById("blockStart").value;
-      const end = document.getElementById("blockEnd").value;
-      if (!start || !end) return alert("Please select both start and end dates");
+  const start = document.getElementById("blockStart").value;
+  const end = document.getElementById("blockEnd").value;
+  if (!start || !end) return alert("Please select both start and end dates");
 
-      fetch("/.netlify/functions/block-date", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ start, end })
-      }).then(() => {
-        alert("Dates blocked successfully");
-        loadCalendar();
-      });
-    }
+  fetch("/.netlify/functions/block-date", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ start, end })
+  }).then(() => {
+    alert("Dates blocked successfully");
+    loadCalendar();
+  });
+}
+
   </script>
 </body>
 </html>
