@@ -6,19 +6,27 @@ export default async (req) => {
   try {
     const { start, end } = await req.json();
 
+    console.log("📦 Blocking range:", start, "→", end);
+
     if (!start || !end) {
-      return Response.json({ error: "Start and end dates are required" }, { status: 400 });
+      console.warn("❗ Missing start or end date");
+      return Response.json({ error: "Missing dates" }, { status: 400 });
     }
 
-    await db`
+    const result = await db`
       INSERT INTO blocked_dates (date)
       SELECT * FROM generate_series(${start}::date, ${end}::date, interval '1 day')::date
       ON CONFLICT DO NOTHING
     `;
 
+    console.log("✅ Blocked result:", result);
+
     return Response.json({ status: "blocked" });
   } catch (err) {
-    console.error("❌ block-date error:", err);
-    return Response.json({ error: "Block failed", message: err.message }, { status: 500 });
+    console.error("❌ Error inserting blocked dates:", err);
+    return Response.json(
+      { error: "Block failed", message: err.message, trace: err.stack },
+      { status: 500 }
+    );
   }
 };
