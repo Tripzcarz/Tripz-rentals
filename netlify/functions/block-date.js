@@ -1,18 +1,15 @@
 import { neon } from '@neondatabase/serverless';
-const sql = neon(process.env.DATABASE_URL);
 
-export default async (req, res) => {
+export default async () => {
+  const db = neon(process.env.DATABASE_URL);
+
   try {
-    const { dates } = JSON.parse(req.body);
-    if (!dates || !Array.isArray(dates)) throw new Error("Invalid input");
-
-    for (let date of dates) {
-      await sql`INSERT INTO booked_dates (date) VALUES (${date}) ON CONFLICT DO NOTHING`;
-    }
-
-    res.status(200).json({ status: "success", message: "Dates blocked." });
+    const result = await db`SELECT date FROM blocked_dates ORDER BY date ASC`;
+    return Response.json({
+      blockedDates: result.map(r => r.date.toISOString().split("T")[0])
+    });
   } catch (err) {
-    console.error("Block Error:", err);
-    res.status(500).json({ error: "Failed to block dates" });
+    console.error("❌ get-blocked-dates error:", err);
+    return Response.json({ blockedDates: [] });
   }
 };
