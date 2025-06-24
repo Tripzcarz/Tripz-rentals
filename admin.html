@@ -144,15 +144,18 @@
     fetch("/.netlify/functions/get-blocked-dates").then(res => res.json())
   ])
   .then(([booked, blocked]) => {
+    console.log("📅 Booked dates:", booked.bookedDates);
+    console.log("📅 Blocked dates:", blocked.blockedDates);
+
     booked.bookedDates.forEach(d => bookedDates.add(d));
     blocked.blockedDates.forEach(d => blockedDates.add(d));
+
     renderCalendar();
   })
   .catch(err => {
-    console.error("❌ Failed to load calendar data:", err);
+    console.error("❌ Calendar load error:", err);
   });
 }
-
 
     function renderCalendar() {
       const container = document.getElementById("calendarView");
