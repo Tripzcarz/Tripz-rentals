@@ -192,23 +192,18 @@
           grid.appendChild(document.createElement("div"));
         }
 
-        for (let d = 1; d <= daysInMonth; d++) {
-          const date = new Date(year, month, d);
-          const iso = date.toISOString().split("T")[0];
-          const cell = document.createElement("div");
-          cell.className = "day";
-          cell.textContent = d;
+       for (let d = 1; d <= daysInMonth; d++) {
+  const date = new Date(year, month, d);
+  const iso = date.toLocaleDateString("sv-SE"); // ✅ local date format (no shift)
+  const cell = document.createElement("div");
+  cell.className = "day";
+  cell.textContent = d;
 
-          if (bookedDates.has(iso)) cell.classList.add("booked");
-          if (blockedDates.has(iso)) cell.classList.add("blocked");
+  if (bookedDates.has(iso)) cell.classList.add("booked");
+  if (blockedDates.has(iso)) cell.classList.add("blocked");
 
-          grid.appendChild(cell);
-        }
-
-        monthDiv.appendChild(grid);
-        container.appendChild(monthDiv);
-      }
-    }
+  grid.appendChild(cell);
+}
 
     function blockDateRange() {
   const start = document.getElementById("blockStart").value;
