@@ -144,8 +144,10 @@
   blockedDates.clear();
 
   Promise.all([
-    fetch("/.netlify/functions/get-booked-dates").then(res => res.json()),
-    fetch("/.netlify/functions/get-blocked-dates").then(res => res.json())
+    fetch("/.netlify/functions/get-booked-dates")
+      .then(res => res.ok ? res.json() : Promise.reject("❌ Booked dates failed")),
+    fetch("/.netlify/functions/get-blocked-dates")
+      .then(res => res.ok ? res.json() : Promise.reject("❌ Blocked dates failed"))
   ])
   .then(([booked, blocked]) => {
     console.log("📅 Booked dates:", booked.bookedDates);
@@ -160,6 +162,7 @@
     console.error("❌ Calendar load error:", err);
   });
 }
+
 
     function renderCalendar() {
   const container = document.getElementById("calendarView");
@@ -198,7 +201,7 @@
 
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(year, month, d);
-      const iso = date.toISOString().split("T")[0]; // consistent format
+      const iso = date.toLocaleDateString("sv-SE"); // ✅ FIXED HERE
       const cell = document.createElement("div");
       cell.className = "day";
       cell.textContent = d;
@@ -212,7 +215,8 @@
     monthDiv.appendChild(grid);
     container.appendChild(monthDiv);
   }
-} // ✅ << END OF renderCalendar
+}
+
 
 function blockDateRange() {
   const start = document.getElementById("blockStart").value;
