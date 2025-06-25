@@ -5,9 +5,7 @@ export default async () => {
   try {
     const result = await db`SELECT date FROM blocked_dates ORDER BY date ASC`;
 
-    const blockedDates = result.map(r =>
-      new Date(r.date).toLocaleDateString("sv-SE")
-    );
+    const blockedDates = result.map(r => r.date.toLocaleDateString("sv-SE", { timeZone: "Asia/Kolkata" }));
 
     return new Response(JSON.stringify({ blockedDates }), {
       headers: { "Content-Type": "application/json" }
