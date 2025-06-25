@@ -77,8 +77,8 @@
 
     console.log("✅ Admin access granted");
 
-    loadBookings().catch(err => console.error("❌ loadBookings failed:", err));
-    loadCalendar().catch(err => console.error("❌ loadCalendar failed:", err));
+    loadBookings();
+    loadCalendar(); // ✅ fixed here
   } else {
     alert("Invalid PIN");
   }
