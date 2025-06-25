@@ -1,8 +1,9 @@
 import { neon } from '@neondatabase/serverless';
 const db = neon(process.env.DATABASE_URL);
 
+// Outputs "YYYY-MM-DD" using local time
 function formatYMDLocal(date) {
-  return date.toLocaleDateString("sv-SE"); // sv-SE gives yyyy-mm-dd in local time
+  return date.toLocaleDateString("sv-SE");  // → '2025-06-25'
 }
 
 export default async () => {
