@@ -162,54 +162,59 @@
 }
 
     function renderCalendar() {
-      const container = document.getElementById("calendarView");
-      container.innerHTML = "";
-      const today = new Date();
+  const container = document.getElementById("calendarView");
+  container.innerHTML = "";
+  const today = new Date();
 
-      for (let i = 0; i < 3; i++) {
-        const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
-        const year = monthDate.getFullYear();
-        const month = monthDate.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let i = 0; i < 3; i++) {
+    const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        const monthDiv = document.createElement("div");
-        const title = document.createElement("h4");
-        title.textContent = monthDate.toLocaleString("default", { month: "long", year: "numeric" });
-        monthDiv.appendChild(title);
+    const monthDiv = document.createElement("div");
+    const title = document.createElement("h4");
+    title.textContent = monthDate.toLocaleString("default", { month: "long", year: "numeric" });
+    monthDiv.appendChild(title);
 
-        const grid = document.createElement("div");
-        grid.className = "calendar";
+    const grid = document.createElement("div");
+    grid.className = "calendar";
 
-        const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        dayHeaders.forEach(day => {
-          const headerCell = document.createElement("div");
-          headerCell.textContent = day;
-          headerCell.style.fontWeight = "bold";
-          headerCell.style.background = "#f0f0f0";
-          headerCell.style.textAlign = "center";
-          headerCell.style.padding = "5px";
-          grid.appendChild(headerCell);
-        });
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+      const headerCell = document.createElement("div");
+      headerCell.textContent = day;
+      headerCell.style.fontWeight = "bold";
+      headerCell.style.background = "#f0f0f0";
+      headerCell.style.textAlign = "center";
+      headerCell.style.padding = "5px";
+      grid.appendChild(headerCell);
+    });
 
-        const firstDay = new Date(year, month, 1).getDay();
-        for (let j = 0; j < firstDay; j++) {
-          grid.appendChild(document.createElement("div"));
-        }
+    const firstDay = new Date(year, month, 1).getDay();
+    for (let j = 0; j < firstDay; j++) {
+      grid.appendChild(document.createElement("div"));
+    }
 
-       for (let d = 1; d <= daysInMonth; d++) {
-  const date = new Date(year, month, d);
-  const iso = date.toLocaleDateString("sv-SE"); // ✅ local date format (no shift)
-  const cell = document.createElement("div");
-  cell.className = "day";
-  cell.textContent = d;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d);
+      const iso = date.toISOString().split("T")[0]; // consistent format
+      const cell = document.createElement("div");
+      cell.className = "day";
+      cell.textContent = d;
 
-  if (bookedDates.has(iso)) cell.classList.add("booked");
-  if (blockedDates.has(iso)) cell.classList.add("blocked");
+      if (bookedDates.has(iso)) cell.classList.add("booked");
+      if (blockedDates.has(iso)) cell.classList.add("blocked");
 
-  grid.appendChild(cell);
-}
+      grid.appendChild(cell);
+    }
 
-    function blockDateRange() {
+    monthDiv.appendChild(grid);
+    container.appendChild(monthDiv);
+  }
+} // ✅ << END OF renderCalendar
+
+function blockDateRange() {
   const start = document.getElementById("blockStart").value;
   const end = document.getElementById("blockEnd").value;
   if (!start || !end) return alert("Please select both start and end dates");
@@ -223,6 +228,7 @@
     loadCalendar();
   });
 }
+
 
   </script>
 </body>
