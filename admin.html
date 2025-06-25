@@ -70,16 +70,20 @@
     const blockedDates = new Set();
 
     function checkPin() {
-      const pin = document.getElementById("pinInput").value;
-      if (pin === ADMIN_PIN) {
-        document.getElementById("loginSection").style.display = "none";
-        document.getElementById("adminPanel").style.display = "block";
-        loadBookings();
-        loadCalendar();
-      } else {
-        alert("Invalid PIN");
-      }
-    }
+  const pin = document.getElementById("pinInput").value;
+  if (pin === ADMIN_PIN) {
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("adminPanel").style.display = "block";
+
+    console.log("✅ Admin access granted");
+
+    loadBookings().catch(err => console.error("❌ loadBookings failed:", err));
+    loadCalendar().catch(err => console.error("❌ loadCalendar failed:", err));
+  } else {
+    alert("Invalid PIN");
+  }
+}
+
 
     function loadBookings() {
       console.log("📥 Fetching bookings...");
